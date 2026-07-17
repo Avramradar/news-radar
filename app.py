@@ -38,7 +38,7 @@ FEEDS = [
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
     ] 
 
-    SOURCE_WEIGHTS = {
+SOURCE_WEIGHTS = {
     # Официальные данные и первичные источники
     "Банк России": 4,
     "ООН Новости": 3,
