@@ -125,8 +125,6 @@ def source_domain(link):
     return urlparse(link).netloc.replace("www.", "")
 
 def collect():
-    
-def collect():
     items = []
 
     for source, url in FEEDS:
