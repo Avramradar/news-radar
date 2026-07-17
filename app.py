@@ -127,24 +127,55 @@ def source_domain(link):
     return urlparse(link).netloc.replace("www.", "")
 
 def collect():
+    
+def collect():
     items = []
-    for source, url in FEEDS:
-        feed = feedparser.parse(url)
-        for entry in feed.entries[:20]:
-            title = clean(getattr(entry, "title", ""))
-            link = clean(getattr(entry, "link", ""))
-            summary = clean(getattr(entry, "summary", ""))
-            if len(title) < 20 or not link:
-                continue
-            items.append({
-                "source": source,
-                "title": title,
-                "link": link,
-                "summary": summary,
-                "score": score(title, summary, source),
-            })
-    return sorted(items, key=lambda item: item["score"], reverse=True)
 
+    for source, url in FEEDS:
+        try:
+            response = requests.get(
+                url,
+                timeout=20,
+                headers={"User-Agent": "Mozilla/5.0 NewsRadarBot/1.0"},
+            )
+            response.raise_for_status()
+
+            feed = feedparser.parse(response.content)
+
+            if feed.bozo and not feed.entries:
+                print(f"Ошибка RSS: {source}")
+                continue
+
+            added = 0
+
+            for entry in feed.entries[:20]:
+                title = clean(getattr(entry, "title", ""))
+                link = clean(getattr(entry, "link", ""))
+                summary = clean(getattr(entry, "summary", ""))
+
+                if len(title) < 20 or not link:
+                    continue
+
+                items.append({
+                    "source": source,
+                    "title": title,
+                    "link": link,
+                    "summary": summary,
+                    "score": score(title, summary, source),
+                })
+                added += 1
+
+            print(f"{source}: получено {added} новостей")
+
+        except Exception as error:
+            print(f"Источник временно недоступен: {source} — {error}")
+            continue
+
+    return sorted(
+        items,
+        key=lambda item: item["score"],
+        reverse=True,
+    )
 def build_post(item):
     summary = item["summary"]
     if len(summary) > 420:
