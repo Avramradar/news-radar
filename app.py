@@ -1,9 +1,8 @@
 import os
-import time
-import sqlite3
+import json
 import hashlib
 import html
-from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import urlparse
 
 import feedparser
@@ -11,156 +10,104 @@ import requests
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHANNEL = os.getenv("CHANNEL", "@newsRadar2026")
-POLL_MINUTES = int(os.getenv("POLL_MINUTES", "20"))
-POSTS_PER_CYCLE = int(os.getenv("POSTS_PER_CYCLE", "2"))
-MIN_TITLE_LEN = 20
+POSTS_PER_RUN = int(os.getenv("POSTS_PER_RUN", "2"))
+STATE_FILE = Path("posted.json")
 
 FEEDS = [
     ("BBC Russian", "https://feeds.bbci.co.uk/russian/rss.xml"),
     ("DW Russian", "https://rss.dw.com/rdf/rss-ru-all"),
-    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
     ("NASA", "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
     ("TechCrunch", "https://techcrunch.com/feed/"),
 ]
 
 KEYWORDS = {
-    "срочно": 5, "война": 4, "переговор": 4, "санкц": 4, "эконом": 3,
-    "нефть": 3, "газ": 3, "рынок": 3, "инфляц": 3, "банк": 3,
-    "искусственн": 3, "ии": 3, "технолог": 2, "космос": 2, "наука": 2,
-    "выбор": 3, "правитель": 3, "президент": 3, "катастроф": 5,
-    "авар": 4, "землетряс": 5, "пожар": 4, "атака": 5, "удар": 5,
+    "срочно": 5, "война": 4, "переговор": 4, "санкц": 4,
+    "эконом": 3, "нефть": 3, "газ": 3, "рынок": 3,
+    "инфляц": 3, "банк": 3, "искусственн": 3, "ии": 3,
+    "технолог": 2, "космос": 2, "наука": 2, "выбор": 3,
+    "правитель": 3, "президент": 3, "катастроф": 5,
+    "авар": 4, "землетряс": 5, "пожар": 4, "атака": 5,
 }
 
-def db():
-    conn = sqlite3.connect("news.db")
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS posted (
-            fingerprint TEXT PRIMARY KEY,
-            title TEXT,
-            link TEXT,
-            posted_at TEXT
-        )
-    """)
-    return conn
+def clean(value):
+    value = html.unescape(value or "").replace("\n", " ").replace("\r", " ")
+    return " ".join(value.split()).strip()
 
 def fingerprint(title, link):
-    raw = f"{title.strip().lower()}|{link.strip()}"
+    raw = f"{title.lower().strip()}|{link.strip()}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
-def clean_text(value):
-    value = html.unescape(value or "")
-    value = value.replace("\n", " ").replace("\r", " ")
-    while "  " in value:
-        value = value.replace("  ", " ")
-    return value.strip()
-
-def score_item(title, summary, source):
-    text = f"{title} {summary}".lower()
-    score = 0
-    for word, weight in KEYWORDS.items():
-        if word in text:
-            score += weight
-    if source in {"Reuters World", "BBC Russian", "DW Russian"}:
-        score += 2
-    if len(title) >= 45:
-        score += 1
-    return score
-
-def domain(link):
+def load_posted():
+    if not STATE_FILE.exists():
+        return set()
     try:
-        return urlparse(link).netloc.replace("www.", "")
+        return set(json.loads(STATE_FILE.read_text(encoding="utf-8")))
     except Exception:
-        return ""
+        return set()
 
-def build_post(item):
-    title = clean_text(item["title"])
-    summary = clean_text(item.get("summary", ""))
-    if len(summary) > 420:
-        summary = summary[:417].rsplit(" ", 1)[0] + "…"
+def save_posted(posted):
+    STATE_FILE.write_text(json.dumps(list(posted)[-3000:], ensure_ascii=False, indent=2), encoding="utf-8")
 
-    source = item["source"]
-    link = item["link"]
-    category = "⚡ ВАЖНО" if item["score"] >= 8 else "🛰 NEWS RADAR"
+def score(title, summary, source):
+    text = f"{title} {summary}".lower()
+    value = sum(weight for word, weight in KEYWORDS.items() if word in text)
+    if source in {"BBC Russian", "DW Russian"}:
+        value += 2
+    return value
 
-    body = [
-        f"<b>{category}</b>",
-        "",
-        f"<b>{html.escape(title)}</b>",
-    ]
-    if summary:
-        body += ["", html.escape(summary)]
-    body += [
-        "",
-        f"Источник: {html.escape(source)} · {html.escape(domain(link))}",
-        f'<a href="{html.escape(link, quote=True)}">Подробнее</a>',
-        "",
-        "#новости #NewsRadar"
-    ]
-    return "\n".join(body)
-
-def send_message(text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": CHANNEL,
-        "text": text,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": False,
-    }
-    r = requests.post(url, json=payload, timeout=30)
-    r.raise_for_status()
-    data = r.json()
-    if not data.get("ok"):
-        raise RuntimeError(data)
-    return data
+def source_domain(link):
+    return urlparse(link).netloc.replace("www.", "")
 
 def collect():
     items = []
-    for source, feed_url in FEEDS:
-        feed = feedparser.parse(feed_url)
+    for source, url in FEEDS:
+        feed = feedparser.parse(url)
         for entry in feed.entries[:20]:
-            title = clean_text(getattr(entry, "title", ""))
-            link = clean_text(getattr(entry, "link", ""))
-            summary = clean_text(getattr(entry, "summary", ""))
-            if len(title) < MIN_TITLE_LEN or not link:
+            title = clean(getattr(entry, "title", ""))
+            link = clean(getattr(entry, "link", ""))
+            summary = clean(getattr(entry, "summary", ""))
+            if len(title) < 20 or not link:
                 continue
-            items.append({
-                "source": source,
-                "title": title,
-                "link": link,
-                "summary": summary,
-                "score": score_item(title, summary, source),
-            })
-    items.sort(key=lambda x: x["score"], reverse=True)
-    return items
+            items.append({"source": source, "title": title, "link": link, "summary": summary, "score": score(title, summary, source)})
+    return sorted(items, key=lambda item: item["score"], reverse=True)
 
-def run_cycle():
-    conn = db()
-    posted = 0
+def build_post(item):
+    summary = item["summary"]
+    if len(summary) > 420:
+        summary = summary[:417].rsplit(" ", 1)[0] + "…"
+    label = "⚡ ВАЖНО" if item["score"] >= 8 else "🛰 NEWS RADAR"
+    parts = [f"<b>{label}</b>", "", f"<b>{html.escape(item['title'])}</b>"]
+    if summary:
+        parts.extend(["", html.escape(summary)])
+    parts.extend(["", f"Источник: {html.escape(item['source'])} · {html.escape(source_domain(item['link']))}", f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>', "", "#новости #NewsRadar"])
+    return "\n".join(parts)
+
+def send(text):
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={"chat_id": CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False},
+        timeout=30,
+    )
+    response.raise_for_status()
+    result = response.json()
+    if not result.get("ok"):
+        raise RuntimeError(result)
+
+def main():
+    posted = load_posted()
+    count = 0
     for item in collect():
-        fp = fingerprint(item["title"], item["link"])
-        exists = conn.execute(
-            "SELECT 1 FROM posted WHERE fingerprint = ?", (fp,)
-        ).fetchone()
-        if exists:
+        key = fingerprint(item["title"], item["link"])
+        if key in posted:
             continue
-        send_message(build_post(item))
-        conn.execute(
-            "INSERT INTO posted VALUES (?, ?, ?, ?)",
-            (fp, item["title"], item["link"], datetime.now(timezone.utc).isoformat())
-        )
-        conn.commit()
-        posted += 1
-        print(f"POSTED: {item['title']}", flush=True)
-        if posted >= POSTS_PER_CYCLE:
+        send(build_post(item))
+        posted.add(key)
+        count += 1
+        print(f"Опубликовано: {item['title']}")
+        if count >= POSTS_PER_RUN:
             break
-    if posted == 0:
-        print("No new items", flush=True)
+    save_posted(posted)
+    print(f"Готово. Новых публикаций: {count}")
 
 if __name__ == "__main__":
-    print(f"News Radar started. Channel={CHANNEL}", flush=True)
-    while True:
-        try:
-            run_cycle()
-        except Exception as exc:
-            print(f"ERROR: {type(exc).__name__}: {exc}", flush=True)
-        time.sleep(POLL_MINUTES * 60)
+    main()
