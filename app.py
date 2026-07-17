@@ -90,7 +90,6 @@ def save_posted(posted):
     )
 
 def score(title, summary, source):
-    def score(title, summary, source):
     text = f"{title} {summary}".lower()
 
     value = SOURCE_WEIGHTS.get(source, 0)
