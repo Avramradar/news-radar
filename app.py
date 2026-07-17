@@ -36,6 +36,8 @@ FEEDS = [
     ("TechCrunch", "https://techcrunch.com/feed/"),
     ("The Verge", "https://www.theverge.com/rss/index.xml"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
+    ] 
+
     SOURCE_WEIGHTS = {
     # Официальные данные и первичные источники
     "Банк России": 4,
