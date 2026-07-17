@@ -18,6 +18,11 @@ FEEDS = [
     ("ТАСС", "https://tass.ru/rss/v2.xml"),
     ("Коммерсантъ", "https://www.kommersant.ru/RSS/news.xml"),
     ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"),
+    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
+    ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
+    ("The Guardian World", "https://www.theguardian.com/world/rss"),
+    ("Associated Press", "https://apnews.com/hub/ap-top-news?output=rss"),
+    ("Euronews", "https://www.euronews.com/rss"),
 
     # Международные организации
     ("ООН Новости", "https://news.un.org/feed/subscribe/ru/news/all/rss.xml"),
