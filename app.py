@@ -100,6 +100,14 @@ def build_post(item):
         "",
         "#новости #NewsRadar",
     ])
+    parts.extend([
+    "",
+    f"Источник: {html.escape(item['source'])}",
+    f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>',
+    "",
+    "#новости #NewsRadar",
+    "────────────\n📡 <b>NEWS RADAR</b>\n\n🔔 Подпишись, чтобы узнавать важные новости первым:\n👉 @newsRadar2026",
+])
     return "\n".join(parts)
 
 def send(text):
