@@ -46,7 +46,10 @@ def load_posted():
         return set()
 
 def save_posted(posted):
-    STATE_FILE.write_text(json.dumps(list(posted)[-3000:], ensure_ascii=False, indent=2), encoding="utf-8")
+    STATE_FILE.write_text(
+        json.dumps(sorted(posted)[-3000:], ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 def score(title, summary, source):
     text = f"{title} {summary}".lower()
@@ -68,30 +71,52 @@ def collect():
             summary = clean(getattr(entry, "summary", ""))
             if len(title) < 20 or not link:
                 continue
-            items.append({"source": source, "title": title, "link": link, "summary": summary, "score": score(title, summary, source)})
+            items.append({
+                "source": source,
+                "title": title,
+                "link": link,
+                "summary": summary,
+                "score": score(title, summary, source),
+            })
     return sorted(items, key=lambda item: item["score"], reverse=True)
 
 def build_post(item):
     summary = item["summary"]
     if len(summary) > 420:
         summary = summary[:417].rsplit(" ", 1)[0] + "…"
+
     label = "⚡ ВАЖНО" if item["score"] >= 8 else "🛰 NEWS RADAR"
-    parts = [f"<b>{label}</b>", "", f"<b>{html.escape(item['title'])}</b>"]
+    parts = [
+        f"<b>{label}</b>",
+        "",
+        f"<b>{html.escape(item['title'])}</b>",
+    ]
     if summary:
         parts.extend(["", html.escape(summary)])
-    parts.extend(["", f"Источник: {html.escape(item['source'])} · {html.escape(source_domain(item['link']))}", f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>', "", "#новости #NewsRadar"])
+    parts.extend([
+        "",
+        f"Источник: {html.escape(item['source'])} · {html.escape(source_domain(item['link']))}",
+        f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>',
+        "",
+        "#новости #NewsRadar",
+    ])
     return "\n".join(parts)
 
 def send(text):
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={"chat_id": CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False},
+        json={
+            "chat_id": CHANNEL,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": False,
+        },
         timeout=30,
     )
     response.raise_for_status()
-    result = response.json()
-    if not result.get("ok"):
-        raise RuntimeError(result)
+    data = response.json()
+    if not data.get("ok"):
+        raise RuntimeError(data)
 
 def main():
     posted = load_posted()

@@ -1,13 +1,8 @@
-# NEWS RADAR — бесплатный запуск через GitHub Actions
+# NEWS RADAR
 
-Бот запускается автоматически два раза в час, ищет новости, исключает повторы и публикует до двух записей в канал `@newsRadar2026`.
+Автоматическая публикация новостей в Telegram через GitHub Actions.
 
-## Настройка
-
-1. Загрузите все файлы из архива в корень репозитория.
-2. Откройте **Settings → Secrets and variables → Actions**.
-3. Нажмите **New repository secret**.
-4. Создайте секрет `BOT_TOKEN` и вставьте новый токен от BotFather.
-5. Откройте **Actions → NEWS RADAR → Run workflow** для проверки.
-
-Бот `@Avramradarbot` должен быть администратором канала с правом публикации сообщений.
+1. Settings → Secrets and variables → Actions.
+2. Создать Repository secret: BOT_TOKEN.
+3. Добавить @Avramradarbot администратором @newsRadar2026 с правом публикации.
+4. Actions → NEWS RADAR → Run workflow.
