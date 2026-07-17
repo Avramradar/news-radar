@@ -14,7 +14,6 @@ POSTS_PER_RUN = int(os.getenv("POSTS_PER_RUN", "2"))
 STATE_FILE = Path("posted.json")
 
 FEEDS = [
-    FEEDS = [
     # Общие новости России и мира
     ("ТАСС", "https://tass.ru/rss/v2.xml"),
     ("Коммерсантъ", "https://www.kommersant.ru/RSS/news.xml"),
@@ -57,8 +56,6 @@ FEEDS = [
     "РБК": 2,
     "ТАСС": 1,
 }
-]
-
 KEYWORDS = {
     "срочно": 5, "война": 4, "переговор": 4, "санкц": 4,
     "эконом": 3, "нефть": 3, "газ": 3, "рынок": 3,
