@@ -26,6 +26,7 @@ FEEDS = [
 
     # Международные организации
     ("ООН Новости", "https://news.un.org/feed/subscribe/ru/news/all/rss.xml"),
+    ("МККК", "https://www.icrc.org/en/rss"),
 
     # Экономика и официальные данные
     ("Банк России", "https://www.cbr.ru/rss/RssNews"),
