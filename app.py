@@ -42,6 +42,9 @@ FEEDS = [
     ("TechCrunch", "https://techcrunch.com/feed/"),
     ("The Verge", "https://www.theverge.com/rss/index.xml"),
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
+    ("Migration Policy Institute", "https://www.migrationpolicy.org/rss.xml"),
+    ("Migration Policy Institute Europe", "https://www.migrationpolicy.org/rss/taxonomy-term/66"),
+    ("Canada Immigration Official", "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=departmentofcitizenshipandimmigration&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Immigration,%20Refugees%20and%20Citizenship%20Canada"),
     ] 
 
 SOURCE_WEIGHTS = {
@@ -50,6 +53,9 @@ SOURCE_WEIGHTS = {
     "ООН Новости": 3,
     "NASA": 3,
     "ESA": 3,
+    "Migration Policy Institute": 4,
+    "Migration Policy Institute Europe": 4,
+    "Canada Immigration Official": 5,
 
     # Наука и технологии
     "N+1": 3,
@@ -71,6 +77,26 @@ KEYWORDS = {
     "технолог": 2, "космос": 2, "наука": 2, "выбор": 3,
     "правитель": 3, "президент": 3, "катастроф": 5,
     "авар": 4, "землетряс": 5, "пожар": 4, "атака": 5,
+    "иммигра": 4,
+    "эмигра": 4,
+    "виза": 4,
+    "вид на жительство": 5,
+    "внж": 5,
+    "пмж": 5,
+    "гражданство": 5,
+    "рабочая виза": 5,
+    "цифровой кочевник": 4,
+    "рынок труда": 3,
+    "стоимость жизни": 3,
+    "признание диплома": 4,
+    "семейное воссоединение": 4,
+    "убежище": 3,
+    "temporary protection": 4,
+    "residence permit": 5,
+    "work permit": 5,
+    "immigration": 4,
+    "visa": 4,
+    "citizenship": 5,
 }
 
 def clean(value):
