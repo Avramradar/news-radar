@@ -1,2 +1,45 @@
 name: NEWS RADAR
-on: workflow_dispatch
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,37 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: news-radar
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Получить файлы
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить зависимости
+        run: pip install -r requirements.txt
+
+      - name: Найти и опубликовать новости
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL: "@newsRadar2026"
+          POSTS_PER_RUN: "2"
+        run: python app.py
+
+      - name: Сохранить список опубликованных новостей
+        run: |
+          git config user.name "news-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add posted.json
+          git diff --cached --quiet || git commit -m "Update published news"
+          git push
