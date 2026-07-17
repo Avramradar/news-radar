@@ -14,10 +14,49 @@ POSTS_PER_RUN = int(os.getenv("POSTS_PER_RUN", "2"))
 STATE_FILE = Path("posted.json")
 
 FEEDS = [
-    ("BBC Russian", "https://feeds.bbci.co.uk/russian/rss.xml"),
-    ("DW Russian", "https://rss.dw.com/rdf/rss-ru-all"),
+    FEEDS = [
+    # Общие новости России и мира
+    ("ТАСС", "https://tass.ru/rss/v2.xml"),
+    ("Коммерсантъ", "https://www.kommersant.ru/RSS/news.xml"),
+    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"),
+
+    # Международные организации
+    ("ООН Новости", "https://news.un.org/feed/subscribe/ru/news/all/rss.xml"),
+
+    # Экономика и официальные данные
+    ("Банк России", "https://www.cbr.ru/rss/RssNews"),
+
+    # Наука
+    ("N+1", "https://nplus1.ru/rss"),
     ("NASA", "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
+    ("ESA", "https://www.esa.int/rssfeed/Our_Activities"),
+    ("ScienceDaily", "https://www.sciencedaily.com/rss/all.xml"),
+
+    # Технологии
+    ("Хабр", "https://habr.com/ru/rss/articles/?fl=ru"),
     ("TechCrunch", "https://techcrunch.com/feed/"),
+    ("The Verge", "https://www.theverge.com/rss/index.xml"),
+    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
+    SOURCE_WEIGHTS = {
+    # Официальные данные и первичные источники
+    "Банк России": 4,
+    "ООН Новости": 3,
+    "NASA": 3,
+    "ESA": 3,
+
+    # Наука и технологии
+    "N+1": 3,
+    "ScienceDaily": 2,
+    "Ars Technica": 2,
+    "Хабр": 2,
+    "TechCrunch": 2,
+    "The Verge": 1,
+
+    # Общая новостная повестка
+    "Коммерсантъ": 2,
+    "РБК": 2,
+    "ТАСС": 1,
+}
 ]
 
 KEYWORDS = {
@@ -52,10 +91,36 @@ def save_posted(posted):
     )
 
 def score(title, summary, source):
+    def score(title, summary, source):
     text = f"{title} {summary}".lower()
-    value = sum(weight for word, weight in KEYWORDS.items() if word in text)
-    if source in {"BBC Russian", "DW Russian"}:
-        value += 2
+
+    value = SOURCE_WEIGHTS.get(source, 0)
+
+    value += sum(
+        weight
+        for word, weight in KEYWORDS.items()
+        if word in text
+    )
+
+    # Повышаем вес конкретных данных
+    fact_markers = [
+        "%", "млрд", "млн", "рубл", "доллар",
+        "заявил", "сообщил", "опубликовал",
+        "исследование", "ученые", "данные",
+    ]
+
+    value += sum(1 for marker in fact_markers if marker in text)
+
+    # Снижаем вес эмоциональных и кликбейтных формулировок
+    clickbait_markers = [
+        "шок", "сенсац", "ужас", "немыслим",
+        "все пропало", "срочно смотрите",
+        "вы не поверите", "разгром", "истерик",
+        "унизил", "взорвал интернет",
+    ]
+
+    value -= sum(3 for marker in clickbait_markers if marker in text)
+
     return value
 
 def source_domain(link):
