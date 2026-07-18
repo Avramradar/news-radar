@@ -249,7 +249,7 @@ def collect():
 
             feed = feedparser.parse(response.content)
 
-            if feed.bozo and not feed.entries:
+                        if feed.bozo and not feed.entries:
                 print(f"Ошибка RSS: {source}")
                 continue
 
@@ -262,15 +262,18 @@ def collect():
 
                 if len(title) < 20 or not link:
                     continue
-news_score = score(title, summary, source)
-items.append({
-    "title": title,
-    "link": link,
-    "summary": summary,
-    "source": source,
-    "score": news_score,
-    "image": find_image(entry, link), 
-})
+
+                news_score = score(title, summary, source)
+
+                items.append({
+                    "title": title,
+                    "link": link,
+                    "summary": summary,
+                    "source": source,
+                    "score": news_score,
+                    "image": find_image(entry, link),
+                })
+
                 added += 1
 
             print(f"{source}: получено {added} новостей")
