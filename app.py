@@ -44,7 +44,14 @@ FEEDS = [
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
     ("Migration Policy Institute", "https://www.migrationpolicy.org/rss.xml"),
     ("Migration Policy Institute Europe", "https://www.migrationpolicy.org/rss/taxonomy-term/66"),
-    ] 
+    ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
+    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"),
+    ("Интерфакс", "https://www.interfax.ru/rss.asp"),
+    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
+    ("Associated Press", "https://apnews.com/rss"),
+    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("International Crisis Group", "https://www.crisisgroup.org/rss-0"),
+] 
 
 SOURCE_WEIGHTS = {
     # Официальные данные и первичные источники
@@ -73,14 +80,6 @@ SOURCE_WEIGHTS = {
     "РБК": 2,
     "ТАСС": 1,
 } 
-    ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
-    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
-    ("Интерфакс", "https://www.interfax.ru/rss.asp"),
-    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
-    ("Associated Press", "https://apnews.com/rss"),
-    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
-    ("International Crisis Group", "https://www.crisisgroup.org/rss-0"),
-}
 KEYWORDS = {
     "срочно": 5, "война": 4, "переговор": 4, "санкц": 4,
     "эконом": 3, "нефть": 3, "газ": 3, "рынок": 3,
