@@ -182,30 +182,62 @@ def score(title, summary, source):
     value -= sum(3 for marker in clickbait_markers if marker in text)
 
     return value
+def valid_image_url(image_url):
+    if not image_url:
+        return False
+
+    try:
+        response = requests.get(
+            image_url,
+            timeout=10,
+            stream=True,
+            allow_redirects=True,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Linux; Android 10) "
+                    "AppleWebKit/537.36 Chrome/120 Safari/537.36"
+                )
+            },
+        )
+
+        content_type = response.headers.get("Content-Type", "").lower()
+        return response.ok and content_type.startswith("image/")
+
+    except Exception:
+        return False
+
+
 def find_image(entry, article_url):
-    # 1. Картинка из RSS media:content
-    media_content = entry.get("media_content", [])
-    if media_content:
-        image_url = media_content[0].get("url")
-        if image_url:
-            return image_url
+    candidates = []
 
-    # 2. Картинка из RSS media:thumbnail
-    media_thumbnail = entry.get("media_thumbnail", [])
-    if media_thumbnail:
-        image_url = media_thumbnail[0].get("url")
-        if image_url:
-            return image_url
+    # Изображения, указанные непосредственно в RSS
+    for media in entry.get("media_content", []):
+        url = media.get("url")
+        media_type = media.get("type", "")
 
-    # 3. Картинка из enclosure
+        if url and (not media_type or media_type.startswith("image/")):
+            candidates.append(url)
+
+    for thumbnail in entry.get("media_thumbnail", []):
+        url = thumbnail.get("url")
+        if url:
+            candidates.append(url)
+
     for enclosure in entry.get("enclosures", []):
+        url = enclosure.get("href") or enclosure.get("url")
         enclosure_type = enclosure.get("type", "")
-        enclosure_url = enclosure.get("href") or enclosure.get("url")
 
-        if enclosure_url and enclosure_type.startswith("image/"):
-            return enclosure_url
+        if url and enclosure_type.startswith("image/"):
+            candidates.append(url)
 
-    # 4. Ищем og:image на странице новости
+    # Проверяем, что RSS действительно дал изображение
+    for image_url in candidates:
+        image_url = urljoin(article_url, image_url)
+
+        if valid_image_url(image_url):
+            return image_url
+
+    # Пытаемся найти og:image на странице статьи
     try:
         response = requests.get(
             article_url,
@@ -217,23 +249,33 @@ def find_image(entry, article_url):
                 )
             },
         )
-        response.raise_for_status()
+
+        if not response.ok:
+            return None
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        tag = soup.find("meta", property="og:image")
-        if not tag:
-            tag = soup.find("meta", attrs={"name": "twitter:image"})
+        tags = [
+            soup.find("meta", property="og:image"),
+            soup.find("meta", property="og:image:url"),
+            soup.find("meta", attrs={"name": "twitter:image"}),
+            soup.find("meta", attrs={"name": "twitter:image:src"}),
+        ]
 
-        if tag and tag.get("content"):
-            return urljoin(article_url, tag["content"])
+        for tag in tags:
+            if not tag:
+                continue
+
+            image_url = tag.get("content")
+            image_url = urljoin(article_url, image_url)
+
+            if valid_image_url(image_url):
+                return image_url
 
     except Exception as error:
-        print(f"Не удалось получить картинку: {error}")
+        print(f"Не удалось получить картинку для {article_url}: {error}")
 
     return None
-def source_domain(link):
-    return urlparse(link).netloc.replace("www.", "")
 
 def collect():
     items = []
