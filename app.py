@@ -44,7 +44,6 @@ FEEDS = [
     ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
     ("Migration Policy Institute", "https://www.migrationpolicy.org/rss.xml"),
     ("Migration Policy Institute Europe", "https://www.migrationpolicy.org/rss/taxonomy-term/66"),
-    ("Canada Immigration Official", "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=departmentofcitizenshipandimmigration&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Immigration,%20Refugees%20and%20Citizenship%20Canada"),
     ] 
 
 SOURCE_WEIGHTS = {
