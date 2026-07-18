@@ -211,72 +211,267 @@ def valid_image_url(image_url):
 
 
 def find_image(entry, article_url):
+    """Ищет подходящее изображение новости в RSS и на странице статьи."""
+
     candidates = []
 
-    # Изображения, указанные непосредственно в RSS
+    def add_candidate(url):
+        if not url:
+            return
+
+        url = str(url).strip()
+        if not url:
+            return
+
+        absolute_url = urljoin(article_url, url)
+
+        lower_url = absolute_url.lower()
+
+        # Не используем логотипы, иконки, аватары и рекламные картинки
+        blocked_words = (
+            "logo",
+            "icon",
+            "avatar",
+            "favicon",
+            "sprite",
+            "banner",
+            "advert",
+            "pixel",
+            "tracker",
+            "placeholder",
+            "default-image",
+        )
+
+        if any(word in lower_url for word in blocked_words):
+            return
+
+        if absolute_url not in candidates:
+            candidates.append(absolute_url)
+
+    # 1. Картинки непосредственно из RSS
     for media in entry.get("media_content", []):
-        url = media.get("url")
         media_type = media.get("type", "")
+        url = media.get("url")
 
         if url and (not media_type or media_type.startswith("image/")):
-            candidates.append(url)
+            add_candidate(url)
 
     for thumbnail in entry.get("media_thumbnail", []):
-        url = thumbnail.get("url")
-        if url:
-            candidates.append(url)
+        add_candidate(thumbnail.get("url"))
 
     for enclosure in entry.get("enclosures", []):
-        url = enclosure.get("href") or enclosure.get("url")
         enclosure_type = enclosure.get("type", "")
+        url = enclosure.get("href") or enclosure.get("url")
 
-        if url and enclosure_type.startswith("image/"):
-            candidates.append(url)
+        if url and (
+            enclosure_type.startswith("image/")
+            or not enclosure_type
+        ):
+            add_candidate(url)
 
-    # Проверяем, что RSS действительно дал изображение
+    # 2. Картинки внутри описания RSS
+    rss_html_parts = [
+        entry.get("summary", ""),
+        entry.get("description", ""),
+    ]
+
+    content_parts = entry.get("content", [])
+    if isinstance(content_parts, list):
+        for content_part in content_parts:
+            if isinstance(content_part, dict):
+                rss_html_parts.append(content_part.get("value", ""))
+
+    for rss_html in rss_html_parts:
+        if not rss_html:
+            continue
+
+        try:
+            rss_soup = BeautifulSoup(rss_html, "html.parser")
+
+            for image_tag in rss_soup.find_all("img"):
+                add_candidate(
+                    image_tag.get("src")
+                    or image_tag.get("data-src")
+                    or image_tag.get("data-original")
+                    or image_tag.get("data-lazy-src")
+                )
+
+        except Exception as error:
+            print("Ошибка разбора картинки из RSS:", error)
+
+    # Сначала проверяем кандидатов из RSS
     for image_url in candidates:
-        image_url = urljoin(article_url, image_url)
-
         if valid_image_url(image_url):
             return image_url
 
-    # Пытаемся найти og:image на странице статьи
+    # 3. Загружаем страницу оригинальной статьи
     try:
         response = requests.get(
             article_url,
-            timeout=10,
+            timeout=15,
+            allow_redirects=True,
             headers={
                 "User-Agent": (
                     "Mozilla/5.0 (Linux; Android 10) "
-                    "AppleWebKit/537.36 Chrome/120 Safari/537.36"
-                )
+                    "AppleWebKit/537.36 "
+                    "Chrome/120.0 Safari/537.36"
+                ),
+                "Accept": (
+                    "text/html,application/xhtml+xml,"
+                    "application/xml;q=0.9,*/*;q=0.8"
+                ),
+                "Accept-Language": "ru,en;q=0.8",
             },
         )
 
         if not response.ok:
+            print(
+                f"Страница статьи недоступна: "
+                f"{response.status_code} {article_url}"
+            )
             return None
 
         soup = BeautifulSoup(response.text, "html.parser")
 
-        tags = [
-            soup.find("meta", property="og:image"),
-            soup.find("meta", property="og:image:url"),
-            soup.find("meta", attrs={"name": "twitter:image"}),
-            soup.find("meta", attrs={"name": "twitter:image:src"}),
+        # 4. Главные изображения из метатегов
+        meta_selectors = [
+            ("property", "og:image"),
+            ("property", "og:image:url"),
+            ("property", "og:image:secure_url"),
+            ("name", "twitter:image"),
+            ("name", "twitter:image:src"),
+            ("itemprop", "image"),
         ]
 
-        for tag in tags:
-            if not tag:
+        for attribute, value in meta_selectors:
+            tag = soup.find("meta", attrs={attribute: value})
+
+            if tag:
+                add_candidate(tag.get("content"))
+
+        # 5. Изображения из JSON-LD
+        import json
+
+        for script in soup.find_all(
+            "script",
+            attrs={"type": "application/ld+json"},
+        ):
+            try:
+                raw_json = script.string or script.get_text()
+                data = json.loads(raw_json)
+
+                json_objects = data if isinstance(data, list) else [data]
+
+                for json_object in json_objects:
+                    if not isinstance(json_object, dict):
+                        continue
+
+                    graph = json_object.get("@graph", [])
+                    objects = (
+                        graph
+                        if isinstance(graph, list)
+                        else [json_object]
+                    )
+
+                    if not graph:
+                        objects = [json_object]
+
+                    for obj in objects:
+                        if not isinstance(obj, dict):
+                            continue
+
+                        image = obj.get("image")
+                        thumbnail = obj.get("thumbnailUrl")
+
+                        if isinstance(image, str):
+                            add_candidate(image)
+
+                        elif isinstance(image, list):
+                            for image_item in image:
+                                if isinstance(image_item, str):
+                                    add_candidate(image_item)
+                                elif isinstance(image_item, dict):
+                                    add_candidate(
+                                        image_item.get("url")
+                                        or image_item.get("contentUrl")
+                                    )
+
+                        elif isinstance(image, dict):
+                            add_candidate(
+                                image.get("url")
+                                or image.get("contentUrl")
+                            )
+
+                        add_candidate(thumbnail)
+
+            except Exception:
                 continue
 
-            image_url = tag.get("content")
-            image_url = urljoin(article_url, image_url)
+        # 6. Обычные фотографии внутри статьи
+        article_container = (
+            soup.find("article")
+            or soup.find("main")
+            or soup
+        )
 
+        for image_tag in article_container.find_all("img", limit=30):
+            width = image_tag.get("width")
+            height = image_tag.get("height")
+
+            try:
+                if width and int(str(width).replace("px", "")) < 300:
+                    continue
+                if height and int(str(height).replace("px", "")) < 180:
+                    continue
+            except ValueError:
+                pass
+
+            add_candidate(
+                image_tag.get("data-src")
+                or image_tag.get("data-original")
+                or image_tag.get("data-lazy-src")
+                or image_tag.get("src")
+            )
+
+            srcset = (
+                image_tag.get("srcset")
+                or image_tag.get("data-srcset")
+            )
+
+            if srcset:
+                srcset_items = []
+
+                for part in srcset.split(","):
+                    pieces = part.strip().split()
+
+                    if not pieces:
+                        continue
+
+                    image_src = pieces[0]
+                    size = 0
+
+                    if len(pieces) > 1 and pieces[1].endswith("w"):
+                        try:
+                            size = int(pieces[1][:-1])
+                        except ValueError:
+                            size = 0
+
+                    srcset_items.append((size, image_src))
+
+                if srcset_items:
+                    srcset_items.sort(reverse=True)
+                    add_candidate(srcset_items[0][1])
+
+        # Проверяем все найденные картинки
+        for image_url in candidates:
             if valid_image_url(image_url):
                 return image_url
 
     except Exception as error:
-        print(f"Не удалось получить картинку для {article_url}: {error}")
+        print(
+            f"Не удалось получить картинку для "
+            f"{article_url}: {error}"
+        )
 
     return None
 STOP_WORDS = {
