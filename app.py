@@ -329,30 +329,41 @@ def source_domain(url):
     except Exception:
         return ""
 def build_post(item):
-    summary = item["summary"]
-    if len(summary) > 420:
-        summary = summary[:417].rsplit(" ", 1)[0] + "…"
+    title = html.escape(item["title"])
 
-    label = "⚡ ВАЖНО" if item["score"] >= 8 else "🛰 NEWS RADAR"
-    parts = [
-        f"<b>{label}</b>",
-        "",
-        f"<b>{html.escape(item['title'])}</b>",
-    ]
-    if summary:
-        parts.extend(["", html.escape(summary)])
-    parts.extend([
-        "",
-        f"Источник: {html.escape(item['source'])} · {html.escape(source_domain(item['link']))}",
-        f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>',
-        "",
-    ])
-    parts.extend([
-    "",
-    "#новости #NewsRadar",
-    "────────────\n📡 <b>NEWS RADAR</b>\n\n🔔 Подпишись, чтобы узнавать важные новости первым:\n👉 @newsRadar2026",
-])
-    return "\n".join(parts)
+    summary = clean(item["summary"])
+
+    # Удаляем HTML
+    summary = BeautifulSoup(summary, "html.parser").get_text(" ", strip=True)
+
+    # Удаляем дубли заголовка
+    if summary.lower().startswith(item["title"].lower()):
+        summary = summary[len(item["title"]):].strip()
+
+    if len(summary) > 280:
+        summary = summary[:277].rsplit(" ", 1)[0] + "..."
+
+    label = "🚨 СРОЧНО" if item["score"] >= 12 else "⚡ ВАЖНО" if item["score"] >= 8 else "📰 NEWS RADAR"
+
+    text = f"""
+<b>{label}</b>
+
+<b>{title}</b>
+
+{html.escape(summary)}
+
+🌍 <b>Источник:</b> {html.escape(item["source"])}
+
+🔗 <a href="{html.escape(item["link"], quote=True)}">Читать полностью</a>
+
+────────────
+📡 <b>NEWS RADAR</b>
+
+🔔 Подпишись:
+👉 @newsRadar2026
+"""
+
+    return text.strip()
 
 def send(text, image_url=None):
     # Сначала пробуем отправить публикацию с фотографией
