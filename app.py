@@ -262,8 +262,8 @@ def collect():
 
                 if len(title) < 20 or not link:
                     continue
-
-                items.append({
+news_score = score(title, summary, source)
+items.append({
     "title": title,
     "link": link,
     "summary": summary,
