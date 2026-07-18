@@ -54,7 +54,14 @@ SOURCE_WEIGHTS = {
     "ESA": 3,
     "Migration Policy Institute": 4,
     "Migration Policy Institute Europe": 4,
-    "Canada Immigration Official": 5,
+    "Reuters World": 5,
+    "Associated Press": 5,
+    "International Crisis Group": 5,
+    "Интерфакс": 4,
+    "РБК": 4,
+    "Коммерсант": 4,
+    "BBC World": 4,
+})
 
     # Наука и технологии
     "N+1": 3,
@@ -68,6 +75,13 @@ SOURCE_WEIGHTS = {
     "Коммерсантъ": 2,
     "РБК": 2,
     "ТАСС": 1,
+    ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
+    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
+    ("Интерфакс", "https://www.interfax.ru/rss.asp"),
+    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
+    ("Associated Press", "https://apnews.com/rss"),
+    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("International Crisis Group", "https://www.crisisgroup.org/rss-0"),
 }
 KEYWORDS = {
     "срочно": 5, "война": 4, "переговор": 4, "санкц": 4,
@@ -96,6 +110,24 @@ KEYWORDS = {
     "immigration": 4,
     "visa": 4,
     "citizenship": 5,
+    "переговоры": 5,
+    "санкции": 5,
+    "МИД": 4,
+    "Кремль": 4,
+    "Госдума": 3,
+    "Минобороны": 4,
+    "армия": 4,
+    "беспилотник": 5,
+    "БПЛА": 5,
+    "удар": 4,
+    "фронт": 4,
+    "наступление": 5,
+    "оборона": 4,
+    "дипломатия": 4,
+    "NATO": 4,
+    "Ukraine": 4,
+    "Russia": 4,
+    "ceasefire": 5,
 }
 
 def clean(value):
