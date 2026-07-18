@@ -411,7 +411,8 @@ def build_post(item):
 
 🌍 <b>Источник:</b> {html.escape(item["source"])}
 
-🔗 <a href="{html.escape(item["link"], quote=True)}">Читать полностью</a>
+🔗 <b>Ссылка:</b>
+{html.escape(item["link"])}
 
 ────────────
 📡 <b>NEWS RADAR</b>
