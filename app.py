@@ -312,7 +312,7 @@ def send(text, image_url=None):
             response = requests.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
                 data={
-                    "chat_id": CHANNEL_ID,
+                    "chat_id": CHANNEL,
                     "photo": image_url,
                     "caption": text[:1024],
                     "parse_mode": "HTML",
