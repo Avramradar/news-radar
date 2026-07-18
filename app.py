@@ -375,7 +375,7 @@ def collect():
     )
 
     return remove_duplicates(sorted_items)
-    )
+
 def source_domain(url):
     try:
         domain = urlparse(url).netloc.lower()
