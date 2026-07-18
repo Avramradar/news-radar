@@ -4,6 +4,8 @@ import hashlib
 import html
 from pathlib import Path
 from urllib.parse import urlparse
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 
 import feedparser
 import requests
@@ -180,7 +182,56 @@ def score(title, summary, source):
     value -= sum(3 for marker in clickbait_markers if marker in text)
 
     return value
+def find_image(entry, article_url):
+    # 1. Картинка из RSS media:content
+    media_content = entry.get("media_content", [])
+    if media_content:
+        image_url = media_content[0].get("url")
+        if image_url:
+            return image_url
 
+    # 2. Картинка из RSS media:thumbnail
+    media_thumbnail = entry.get("media_thumbnail", [])
+    if media_thumbnail:
+        image_url = media_thumbnail[0].get("url")
+        if image_url:
+            return image_url
+
+    # 3. Картинка из enclosure
+    for enclosure in entry.get("enclosures", []):
+        enclosure_type = enclosure.get("type", "")
+        enclosure_url = enclosure.get("href") or enclosure.get("url")
+
+        if enclosure_url and enclosure_type.startswith("image/"):
+            return enclosure_url
+
+    # 4. Ищем og:image на странице новости
+    try:
+        response = requests.get(
+            article_url,
+            timeout=10,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Linux; Android 10) "
+                    "AppleWebKit/537.36 Chrome/120 Safari/537.36"
+                )
+            },
+        )
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        tag = soup.find("meta", property="og:image")
+        if not tag:
+            tag = soup.find("meta", attrs={"name": "twitter:image"})
+
+        if tag and tag.get("content"):
+            return urljoin(article_url, tag["content"])
+
+    except Exception as error:
+        print(f"Не удалось получить картинку: {error}")
+
+    return None
 def source_domain(link):
     return urlparse(link).netloc.replace("www.", "")
 
@@ -213,12 +264,13 @@ def collect():
                     continue
 
                 items.append({
-                    "source": source,
-                    "title": title,
-                    "link": link,
-                    "summary": summary,
-                    "score": score(title, summary, source),
-                })
+    "title": title,
+    "link": link,
+    "summary": summary,
+    "source": source,
+    "score": news_score,
+    "image": find_image(entry, link), 
+})
                 added += 1
 
             print(f"{source}: получено {added} новостей")
@@ -258,21 +310,42 @@ def build_post(item):
 ])
     return "\n".join(parts)
 
-def send(text):
+def send(text, image_url=None):
+    if image_url:
+        try:
+            response = requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
+                data={
+                    "chat_id": CHANNEL_ID,
+                    "photo": image_url,
+                    "caption": text[:1024],
+                    "parse_mode": "HTML",
+                },
+                timeout=20,
+            )
+
+            if response.ok:
+                return True
+
+            print("Telegram не принял фото:", response.text)
+
+        except Exception as error:
+            print(f"Ошибка отправки фото: {error}")
+
+    # Если картинки нет или Telegram её не принял
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        json={
-            "chat_id": CHANNEL,
+        data={
+            "chat_id": CHANNEL_ID,
             "text": text,
             "parse_mode": "HTML",
             "disable_web_page_preview": False,
         },
-        timeout=30,
+        timeout=20,
     )
+
     response.raise_for_status()
-    data = response.json()
-    if not data.get("ok"):
-        raise RuntimeError(data)
+    return True
 
 def main():
     posted = load_posted()
@@ -281,7 +354,10 @@ def main():
         key = fingerprint(item["title"], item["link"])
         if key in posted:
             continue
-        send(build_post(item))
+        send(
+    build_post(item),
+    item.get("image"),
+)
         posted.add(key)
         count += 1
         print(f"Опубликовано: {item['title']}")
