@@ -4,7 +4,7 @@ import hashlib
 import html
 from pathlib import Path
 from urllib.parse import urlparse
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urljoin
 from bs4 import BeautifulSoup
 
 import feedparser
@@ -322,6 +322,12 @@ def collect():
         key=lambda item: item["score"],
         reverse=True,
     )
+def source_domain(url):
+    try:
+        domain = urlparse(url).netloc.lower()
+        return domain.removeprefix("www.")
+    except Exception:
+        return ""
 def build_post(item):
     summary = item["summary"]
     if len(summary) > 420:
