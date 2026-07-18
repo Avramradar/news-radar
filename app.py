@@ -58,7 +58,6 @@ SOURCE_WEIGHTS = {
     "Associated Press": 5,
     "International Crisis Group": 5,
     "Интерфакс": 4,
-    "РБК": 4,
     "Коммерсант": 4,
     "BBC World": 4,
 }
@@ -72,9 +71,9 @@ SOURCE_WEIGHTS = {
     "The Verge": 1,
 
     # Общая новостная повестка
-    "Коммерсантъ": 2,
     "РБК": 2,
     "ТАСС": 1,
+} 
     ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
     ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
     ("Интерфакс", "https://www.interfax.ru/rss.asp"),
