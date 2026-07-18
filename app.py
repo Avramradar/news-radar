@@ -400,29 +400,65 @@ def build_post(item):
     if len(summary) > 280:
         summary = summary[:277].rsplit(" ", 1)[0] + "..."
 
-    label = "🚨 СРОЧНО" if item["score"] >= 12 else "⚡ ВАЖНО" if item["score"] >= 8 else "📰 NEWS RADAR"
+    label =     fact_sources = {
+        "Today I Found Out",
+        "Damn Interesting",
+        "Now I Know",
+    }
+
+    source_name = item.get("source", "Неизвестный источник")
+    article_link = item.get("link", "")
+
+    if source_name in fact_sources:
+        label = "🧠 ИНТЕРЕСНЫЙ ФАКТ"
+    elif item["score"] >= 12:
+        label = "🚨 СРОЧНО"
+    elif item["score"] >= 8:
+        label = "⚡ ВАЖНО"
+    else:
+        label = "📰 НОВОСТИ"
+
+    safe_source = html.escape(source_name)
+    safe_link = html.escape(article_link, quote=True)
 
     text = f"""
 <b>{label}</b>
 
 <b>{title}</b>
 
-{html.escape(summary)}
+📝 {html.escape(summary)}
 
-🌍 <b>Источник:</b> {html.escape(item["source"])}
+🌍 <b>Источник:</b> {safe_source}
 
-🔗 <b>Ссылка:</b>
-{html.escape(item["link"])}
+🔗 <b>Оригинал:</b>
+{safe_link}
 
-────────────
+━━━━━━━━━━━━━━
+
 📡 <b>NEWS RADAR</b>
-
-🔔 Подпишись:
-👉 @newsRadar2026
+🔔 @newsRadar2026
 """
-
     return text.strip()
+def fit_caption(text, limit=1024):
+    """Сокращает подпись к фотографии, сохраняя источник и ссылку."""
+    if len(text) <= limit:
+        return text
 
+    marker = "\n🌍 <b>Источник:</b>"
+    marker_position = text.find(marker)
+
+    if marker_position == -1:
+        return text[:limit - 1].rstrip() + "…"
+
+    ending = text[marker_position:]
+    available = limit - len(ending) - 3
+
+    if available < 100:
+        return text[:limit - 1].rstrip() + "…"
+
+    beginning = text[:available].rstrip()
+
+    return beginning + "…\n" + ending
 def send(text, image_url=None):
     # Сначала пробуем отправить публикацию с фотографией
     if image_url:
@@ -432,7 +468,7 @@ def send(text, image_url=None):
                 data={
                     "chat_id": CHANNEL,
                     "photo": image_url,
-                    "caption": text[:1024],
+                    "caption": fit_caption(text), 
                     "parse_mode": "HTML",
                 },
                 timeout=20,
