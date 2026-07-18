@@ -1,9 +1,9 @@
 name: NEWS RADAR
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: "7,37 * * * *"
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
 
 permissions:
   contents: write
