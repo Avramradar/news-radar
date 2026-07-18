@@ -72,7 +72,7 @@ SOURCE_WEIGHTS = {
     # Общая новостная повестка
     "РБК": 2,
     "ТАСС": 1,
-
+} 
     ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
     ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"
     ("Интерфакс", "https://www.interfax.ru/rss.asp"),
