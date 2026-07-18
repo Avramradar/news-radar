@@ -29,7 +29,10 @@ FEEDS = [
     # Международные организации
     ("ООН Новости", "https://news.un.org/feed/subscribe/ru/news/all/rss.xml"),
     ("МККК", "https://www.icrc.org/en/rss"),
-
+    # Интересные факты
+    ("Today I Found Out", "https://www.todayifoundout.com/index.php/feed/"),
+    ("Damn Interesting", "https://www.damninteresting.com/feed/"),
+    ("Now I Know", "https://nowiknow.com/feed/"),
     # Экономика и официальные данные
     ("Банк России", "https://www.cbr.ru/rss/RssNews"),
 
