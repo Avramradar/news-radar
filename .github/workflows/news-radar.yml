@@ -15,7 +15,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 10
 
     steps:
       - name: Получить файлы
@@ -32,20 +32,12 @@ jobs:
       - name: Установить зависимости
         run: pip install -r requirements.txt
 
-      - name: Запуск публикаций
+      - name: Запустить публикацию
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL: "@newsRadar2026"
           POSTS_PER_RUN: "1"
-        run: |
-          for attempt in 1 2 3; do
-            echo "Запуск №$attempt"
-            python app.py || echo "Ошибка запуска №$attempt"
-            
-            if [ "$attempt" -lt 3 ]; then
-              sleep 240
-            fi
-          done
+        run: python app.py
 
       - name: Сохранить posted.json
         run: |
@@ -60,16 +52,5 @@ jobs:
           fi
 
           git commit -m "Update published news"
-
-          for attempt in 1 2 3; do
-            git pull --rebase origin main
-            
-            if git push origin main; then
-              exit 0
-            fi
-
-            echo "Повтор push №$attempt"
-            sleep 10
-          done
-
-          exit 1
+          git pull --rebase origin main
+          git push origin main
