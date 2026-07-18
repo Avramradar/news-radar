@@ -276,7 +276,58 @@ def find_image(entry, article_url):
         print(f"Не удалось получить картинку для {article_url}: {error}")
 
     return None
+STOP_WORDS = {
+    "что", "как", "для", "это", "его", "она", "они", "при",
+    "или", "уже", "после", "будет", "были", "стал", "стала",
+    "из-за", "свой", "свои", "также", "сообщил", "заявил",
+    "the", "and", "for", "with", "from", "that", "this",
+    "after", "over", "into", "says", "said",
+}
 
+
+def title_words(title):
+    text = clean(title).lower()
+
+    for symbol in ".,:;!?()[]{}«»\"'—–-/":
+        text = text.replace(symbol, " ")
+
+    return {
+        word
+        for word in text.split()
+        if len(word) >= 4 and word not in STOP_WORDS
+    }
+
+
+def similar_titles(first_title, second_title):
+    first = title_words(first_title)
+    second = title_words(second_title)
+
+    if not first or not second:
+        return False
+
+    common = len(first & second)
+    smallest = min(len(first), len(second))
+
+    return common / smallest >= 0.65
+
+
+def remove_duplicates(items):
+    unique_items = []
+
+    # Сначала идут новости с самым высоким рейтингом
+    for item in items:
+        duplicate = any(
+            similar_titles(item["title"], saved["title"])
+            for saved in unique_items
+        )
+
+        if duplicate:
+            print(f"Пропущен дубль: {item['title']}")
+            continue
+
+        unique_items.append(item)
+
+    return unique_items
 def collect():
     items = []
 
@@ -317,10 +368,13 @@ def collect():
             print(f"Источник временно недоступен: {source} — {error}")
             continue
 
-    return sorted(
+        sorted_items = sorted(
         items,
         key=lambda item: item["score"],
         reverse=True,
+    )
+
+    return remove_duplicates(sorted_items)
     )
 def source_domain(url):
     try:
