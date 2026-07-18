@@ -240,16 +240,9 @@ def collect():
 
     for source, url in FEEDS:
         try:
-            response = requests.get(
-                url,
-                timeout=20,
-                headers={"User-Agent": "Mozilla/5.0 NewsRadarBot/1.0"},
-            )
-            response.raise_for_status()
+            feed = feedparser.parse(url)
 
-            feed = feedparser.parse(response.content)
-
-                        if feed.bozo and not feed.entries:
+            if feed.bozo and not feed.entries:
                 print(f"Ошибка RSS: {source}")
                 continue
 
