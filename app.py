@@ -221,7 +221,6 @@ def build_post(item):
         f"Источник: {html.escape(item['source'])} · {html.escape(source_domain(item['link']))}",
         f'<a href="{html.escape(item["link"], quote=True)}">Подробнее</a>',
         "",
-        "#новости #NewsRadar",
     ])
     parts.extend([
     "",
