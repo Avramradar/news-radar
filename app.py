@@ -307,6 +307,7 @@ def build_post(item):
     return "\n".join(parts)
 
 def send(text, image_url=None):
+    # Сначала пробуем отправить публикацию с фотографией
     if image_url:
         try:
             response = requests.post(
@@ -328,39 +329,60 @@ def send(text, image_url=None):
         except Exception as error:
             print(f"Ошибка отправки фото: {error}")
 
-    # Если картинки нет или Telegram её не принял
-    response = requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        data={
-            "chat_id": CHANNEL_ID,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": False,
-        },
-        timeout=20,
-    )
+    # Если фото не подошло — отправляем обычный текстовый пост
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            data={
+                "chat_id": CHANNEL,
+                "text": text[:4096],
+                "parse_mode": "HTML",
+                "disable_web_page_preview": False,
+            },
+            timeout=20,
+        )
 
-    response.raise_for_status()
-    return True
+        if not response.ok:
+            print("Telegram не принял текст:", response.text)
+            return False
+
+        return True
+
+    except Exception as error:
+        print(f"Ошибка отправки текста: {error}")
+        return False
 
 def main():
     posted = load_posted()
     count = 0
+
     for item in collect():
         key = fingerprint(item["title"], item["link"])
+
         if key in posted:
             continue
-        send(
-    build_post(item),
-    item.get("image"),
-)
+
+        success = send(
+            build_post(item),
+            item.get("image"),
+        )
+
+        if not success:
+            print(f"Не удалось опубликовать: {item['title']}")
+            continue
+
         posted.add(key)
         count += 1
         print(f"Опубликовано: {item['title']}")
+
         if count >= POSTS_PER_RUN:
             break
+
     save_posted(posted)
     print(f"Готово. Новых публикаций: {count}")
 
+
 if __name__ == "__main__":
     main()
+        
+ 
