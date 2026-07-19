@@ -15,7 +15,10 @@ BOT_TOKEN = os.environ["BOT_TOKEN"]
 CHANNEL = os.getenv("CHANNEL", "@newsRadar2026")
 POSTS_PER_RUN = int(os.getenv("POSTS_PER_RUN", "2"))
 STATE_FILE = Path("posted.json")
-
+DIGEST_IMAGE_URL = (
+    "https://raw.githubusercontent.com/"
+    "Avramradar/news-radar/main/digest-cover.png"
+)
 FEEDS = [
     # 🇷🇺 Россия
     {
@@ -1140,28 +1143,75 @@ def build_digest(items, max_items=12):
 
 
 def send_digest():
-    """Собирает и отправляет сводку отдельным сообщением."""
+    """Публикует сводку вместе с фирменной картинкой."""
     items = collect_digest_items(hours=12)
     text = build_digest(items)
 
-    response = requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+    moscow_time = datetime.now(timezone.utc) + timedelta(hours=3)
+
+    if moscow_time.hour < 15:
+        digest_caption = (
+            "☀️ <b>УТРЕННЯЯ СВОДКА</b>\n\n"
+            "Главные события за последние 12 часов."
+        )
+    else:
+        digest_caption = (
+            "🌙 <b>ВЕЧЕРНЯЯ СВОДКА</b>\n\n"
+            "Главные события за последние 12 часов."
+        )
+
+    photo_response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
         data={
             "chat_id": CHANNEL,
-            "text": text,
+            "photo": DIGEST_IMAGE_URL,
+            "caption": digest_caption,
             "parse_mode": "HTML",
-            "disable_web_page_preview": True,
         },
         timeout=30,
     )
 
-    if not response.ok:
+    if not photo_response.ok:
         raise RuntimeError(
-            f"Ошибка отправки сводки: {response.status_code} "
-            f"{response.text[:500]}"
+            f"Ошибка отправки картинки сводки: "
+            f"{photo_response.status_code} "
+            f"{photo_response.text[:500]}"
         )
 
-    print(f"Сводка опубликована. Новостей: {min(len(items), 12)}")
+    photo_result = photo_response.json()
+    photo_message_id = (
+        photo_result.get("result", {}).get("message_id")
+    )
+
+    message_data = {
+        "chat_id": CHANNEL,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+
+    if photo_message_id:
+        message_data["reply_parameters"] = json.dumps({
+            "message_id": photo_message_id,
+        })
+
+    text_response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        data=message_data,
+        timeout=30,
+    )
+
+    if not text_response.ok:
+        raise RuntimeError(
+            f"Ошибка отправки текста сводки: "
+            f"{text_response.status_code} "
+            f"{text_response.text[:500]}"
+        )
+
+    print(
+        f"Сводка опубликована с картинкой. "
+        f"Новостей: {min(len(items), 12)}"
+    )
 def send(text, image_url=None):
     # Сначала пробуем отправить публикацию с фотографией
     if image_url:
