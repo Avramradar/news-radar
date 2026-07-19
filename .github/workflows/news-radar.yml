@@ -2,18 +2,37 @@ name: NEWS RADAR
 
 on:
   schedule:
+    # Обычная новость каждые 15 минут
     - cron: "3,18,33,48 * * * *"
+
+    # Сводка в 08:05 и 20:05 по Москве
+    # GitHub использует UTC: 05:05 и 17:05 UTC
+    - cron: "5 5,17 * * *"
+
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "Что запустить вручную"
+        required: true
+        default: "news"
+        type: choice
+        options:
+          - news
+          - digest
 
 permissions:
   contents: write
 
 concurrency:
-  group: news-radar-publisher
+  group: news-radar-${{ github.event.schedule || inputs.mode || 'manual' }}
   cancel-in-progress: false
 
 jobs:
-  publish:
+  publish-news:
+    if: >
+      github.event_name == 'workflow_dispatch' && inputs.mode == 'news' ||
+      github.event_name == 'schedule' && github.event.schedule == '3,18,33,48 * * * *'
+
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -32,11 +51,12 @@ jobs:
       - name: Установить зависимости
         run: pip install -r requirements.txt
 
-      - name: Запустить публикацию
+      - name: Опубликовать обычную новость
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL: "@newsRadar2026"
           POSTS_PER_RUN: "1"
+          MODE: "news"
         run: python app.py
 
       - name: Сохранить posted.json
@@ -54,3 +74,31 @@ jobs:
           git commit -m "Update published news"
           git pull --rebase origin main
           git push origin main
+
+  publish-digest:
+    if: >
+      github.event_name == 'workflow_dispatch' && inputs.mode == 'digest' ||
+      github.event_name == 'schedule' && github.event.schedule == '5 5,17 * * *'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Получить файлы
+        uses: actions/checkout@v4
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить зависимости
+        run: pip install -r requirements.txt
+
+      - name: Опубликовать расширенную сводку
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL: "@newsRadar2026"
+          MODE: "digest"
+        run: python app.py
