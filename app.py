@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 import html
+import time
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
 from deep_translator import GoogleTranslator
@@ -1259,33 +1260,63 @@ def send(text, image_url=None):
         return False
 
 def main():
+    """
+    Публикует по одной новой новости от каждого доступного источника.
+    Один источник не может занять всю выдачу.
+    """
+    items = collect()
     posted = load_posted()
+
+    sent_sources = set()
     count = 0
 
-    for item in collect():
-        key = fingerprint(item["title"], item["link"])
+    for item in items:
+        source = item.get("source", "Неизвестный источник")
 
-        if key in posted:
+        # От каждого источника за один запуск публикуем только одну новость
+        if source in sent_sources:
             continue
 
-        success = send(
-            build_post(item),
-            item.get("image"),
-        )
+        title = item.get("title", "")
+        link = item.get("link", "")
+        post_id = fingerprint(title, link)
 
-        if not success:
-            print(f"Не удалось опубликовать: {item['title']}")
+        # Уже опубликованную новость пропускаем
+        if post_id in posted:
             continue
 
-        posted.add(key)
-        count += 1
-        print(f"Опубликовано: {item['title']}")
+        text = build_post(item)
+        image_url = item.get("image")
 
-        if count >= POSTS_PER_RUN:
-            break
+        try:
+            success = send(text, image_url)
+
+            if not success:
+                print(f"Не удалось опубликовать: {title}")
+                continue
+
+            posted.add(post_id)
+            sent_sources.add(source)
+            count += 1
+
+            print(f"Опубликовано от источника {source}: {title}")
+
+            # Небольшая пауза, чтобы Telegram не ограничил массовую отправку
+            time.sleep(1.5)
+
+        except Exception as error:
+            print(
+                f"Ошибка публикации от источника "
+                f"{source}: {error}"
+            )
+            continue
 
     save_posted(posted)
-    print(f"Готово. Новых публикаций: {count}")
+
+    print(
+        f"Готово. Опубликовано новостей: {count}. "
+        f"Источников: {len(sent_sources)}."
+    )
 
 
 if __name__ == "__main__":
