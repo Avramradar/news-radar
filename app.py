@@ -3,8 +3,8 @@ import json
 import hashlib
 import html
 from pathlib import Path
-from urllib.parse import urlparse
-from urllib.parse import urljoin, urljoin
+from urllib.parse import urlparse, urljoin
+from deep_translator import GoogleTranslator
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 
@@ -17,75 +17,293 @@ POSTS_PER_RUN = int(os.getenv("POSTS_PER_RUN", "2"))
 STATE_FILE = Path("posted.json")
 
 FEEDS = [
-    # Общие новости России и мира
-    ("ТАСС", "https://tass.ru/rss/v2.xml"),
-    ("Коммерсантъ", "https://www.kommersant.ru/RSS/news.xml"),
-    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"),
-    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
-    ("Reuters Business", "https://feeds.reuters.com/reuters/businessNews"),
-    ("The Guardian World", "https://www.theguardian.com/world/rss"),
-    ("Associated Press", "https://apnews.com/hub/ap-top-news?output=rss"),
-    ("Euronews", "https://www.euronews.com/rss"),
+    # 🇷🇺 Россия
+    {
+        "name": "ТАСС",
+        "url": "https://tass.ru/rss/v2.xml",
+        "category": "РОССИЯ",
+        "icon": "🇷🇺",
+        "language": "ru",
+        "weight": 8,
+    },
+    {
+        "name": "Интерфакс",
+        "url": "https://www.interfax.ru/rss.asp",
+        "category": "РОССИЯ",
+        "icon": "🇷🇺",
+        "language": "ru",
+        "weight": 8,
+    },
+    {
+        "name": "Коммерсантъ",
+        "url": "https://www.kommersant.ru/RSS/news.xml",
+        "category": "РОССИЯ",
+        "icon": "🇷🇺",
+        "language": "ru",
+        "weight": 7,
+    },
+    {
+        "name": "РБК",
+        "url": "https://rssexport.rbc.ru/rbcnews/news/30/full.rss",
+        "category": "РОССИЯ",
+        "icon": "🇷🇺",
+        "language": "ru",
+        "weight": 7,
+    },
 
-    # Международные организации
-    ("ООН Новости", "https://news.un.org/feed/subscribe/ru/news/all/rss.xml"),
-    ("МККК", "https://www.icrc.org/en/rss"),
-    # Интересные факты
-    ("Today I Found Out", "https://www.todayifoundout.com/index.php/feed/"),
-    ("Damn Interesting", "https://www.damninteresting.com/feed/"),
-    ("Now I Know", "https://nowiknow.com/feed/"),
-    # Экономика и официальные данные
-    ("Банк России", "https://www.cbr.ru/rss/RssNews"),
+    # 🌍 Мир
+    {
+        "name": "BBC World",
+        "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 9,
+    },
+    {
+        "name": "The Guardian",
+        "url": "https://www.theguardian.com/world/rss",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "Al Jazeera",
+        "url": "https://www.aljazeera.com/xml/rss/all.xml",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "NPR World",
+        "url": "https://feeds.npr.org/1004/rss.xml",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "Le Monde International",
+        "url": "https://www.lemonde.fr/en/international/rss_full.xml",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "Le Monde Europe",
+        "url": "https://www.lemonde.fr/en/europe/rss_full.xml",
+        "category": "ЕВРОПА",
+        "icon": "🇪🇺",
+        "language": "en",
+        "weight": 7,
+    },
+    {
+        "name": "International Crisis Group",
+        "url": "https://www.crisisgroup.org/rss-0",
+        "category": "МИРОВЫЕ НОВОСТИ",
+        "icon": "🌍",
+        "language": "en",
+        "weight": 9,
+    },
 
-    # Наука
-    ("N+1", "https://nplus1.ru/rss"),
-    ("NASA", "https://www.nasa.gov/rss/dyn/breaking_news.rss"),
-    ("ESA", "https://www.esa.int/rssfeed/Our_Activities"),
-    ("ScienceDaily", "https://www.sciencedaily.com/rss/all.xml"),
+    # 💰 Экономика
+    {
+        "name": "Банк России",
+        "url": "https://www.cbr.ru/rss/RssNews",
+        "category": "ЭКОНОМИКА",
+        "icon": "💰",
+        "language": "ru",
+        "weight": 9,
+    },
+    {
+        "name": "Банк России — пресс-релизы",
+        "url": "https://www.cbr.ru/rss/RssPress",
+        "category": "ЭКОНОМИКА",
+        "icon": "💰",
+        "language": "ru",
+        "weight": 9,
+    },
+    {
+        "name": "Le Monde Economy",
+        "url": "https://www.lemonde.fr/en/world-economy/rss_full.xml",
+        "category": "ЭКОНОМИКА",
+        "icon": "💰",
+        "language": "en",
+        "weight": 7,
+    },
 
-    # Технологии
-    ("Хабр", "https://habr.com/ru/rss/articles/?fl=ru"),
-    ("TechCrunch", "https://techcrunch.com/feed/"),
-    ("The Verge", "https://www.theverge.com/rss/index.xml"),
-    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/index"),
-    ("Migration Policy Institute", "https://www.migrationpolicy.org/rss.xml"),
-    ("Migration Policy Institute Europe", "https://www.migrationpolicy.org/rss/taxonomy-term/66"),
-    ("Коммерсант", "https://www.kommersant.ru/RSS/news.xml"),
-    ("РБК", "https://rssexport.rbc.ru/rbcnews/news/30/full.rss"),
-    ("Интерфакс", "https://www.interfax.ru/rss.asp"),
-    ("Reuters World", "https://feeds.reuters.com/Reuters/worldNews"),
-    ("Associated Press", "https://apnews.com/rss"),
-    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
-    ("International Crisis Group", "https://www.crisisgroup.org/rss-0"),
-] 
+    # 🤖 Технологии и ИИ
+    {
+        "name": "Хабр",
+        "url": "https://habr.com/ru/rss/articles/?fl=ru",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "ru",
+        "weight": 6,
+    },
+    {
+        "name": "TechCrunch",
+        "url": "https://techcrunch.com/feed/",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "en",
+        "weight": 7,
+    },
+    {
+        "name": "The Verge",
+        "url": "https://www.theverge.com/rss/index.xml",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "en",
+        "weight": 7,
+    },
+    {
+        "name": "Ars Technica",
+        "url": "https://feeds.arstechnica.com/arstechnica/index",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "MIT Technology Review",
+        "url": "https://www.technologyreview.com/feed/",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "Le Monde AI",
+        "url": "https://www.lemonde.fr/en/artificial-intelligence/rss_full.xml",
+        "category": "ТЕХНОЛОГИИ И ИИ",
+        "icon": "🤖",
+        "language": "en",
+        "weight": 7,
+    },
+
+    # 🔬 Наука
+    {
+        "name": "N+1",
+        "url": "https://nplus1.ru/rss",
+        "category": "НАУКА",
+        "icon": "🔬",
+        "language": "ru",
+        "weight": 7,
+    },
+    {
+        "name": "ScienceDaily",
+        "url": "https://www.sciencedaily.com/rss/all.xml",
+        "category": "НАУКА",
+        "icon": "🔬",
+        "language": "en",
+        "weight": 7,
+    },
+    {
+        "name": "Nature",
+        "url": "https://www.nature.com/nature.rss",
+        "category": "НАУКА",
+        "icon": "🔬",
+        "language": "en",
+        "weight": 9,
+    },
+    {
+        "name": "Phys.org",
+        "url": "https://phys.org/rss-feed/",
+        "category": "НАУКА",
+        "icon": "🔬",
+        "language": "en",
+        "weight": 7,
+    },
+    {
+        "name": "Le Monde Science",
+        "url": "https://www.lemonde.fr/en/science/rss_full.xml",
+        "category": "НАУКА",
+        "icon": "🔬",
+        "language": "en",
+        "weight": 7,
+    },
+
+    # 🚀 Космос
+    {
+        "name": "NASA",
+        "url": "https://www.nasa.gov/feed/",
+        "category": "КОСМОС",
+        "icon": "🚀",
+        "language": "en",
+        "weight": 9,
+    },
+    {
+        "name": "ESA",
+        "url": "https://www.esa.int/rssfeed/Our_Activities",
+        "category": "КОСМОС",
+        "icon": "🚀",
+        "language": "en",
+        "weight": 8,
+    },
+    {
+        "name": "Le Monde Space",
+        "url": "https://www.lemonde.fr/en/space-and-astronomy/rss_full.xml",
+        "category": "КОСМОС",
+        "icon": "🚀",
+        "language": "en",
+        "weight": 7,
+    },
+
+    # 🏥 Международные организации
+    {
+        "name": "ООН Новости",
+        "url": "https://news.un.org/feed/subscribe/ru/news/all/rss.xml",
+        "category": "МЕЖДУНАРОДНЫЕ ОРГАНИЗАЦИИ",
+        "icon": "🏥",
+        "language": "ru",
+        "weight": 9,
+    },
+    {
+        "name": "МККК",
+        "url": "https://www.icrc.org/en/rss",
+        "category": "МЕЖДУНАРОДНЫЕ ОРГАНИЗАЦИИ",
+        "icon": "🏥",
+        "language": "en",
+        "weight": 8,
+    },
+
+    # 🧠 Интересные факты
+    {
+        "name": "Today I Found Out",
+        "url": "https://www.todayifoundout.com/index.php/feed/",
+        "category": "ИНТЕРЕСНЫЙ ФАКТ",
+        "icon": "🧠",
+        "language": "en",
+        "weight": 4,
+    },
+    {
+        "name": "Damn Interesting",
+        "url": "https://www.damninteresting.com/feed/",
+        "category": "ИНТЕРЕСНЫЙ ФАКТ",
+        "icon": "🧠",
+        "language": "en",
+        "weight": 4,
+    },
+    {
+        "name": "Now I Know",
+        "url": "https://nowiknow.com/feed/",
+        "category": "ИНТЕРЕСНЫЙ ФАКТ",
+        "icon": "🧠",
+        "language": "en",
+        "weight": 4,
+    },
+]
+
 
 SOURCE_WEIGHTS = {
-    # Официальные данные и первичные источники
-    "Банк России": 4,
-    "ООН Новости": 3,
-    "NASA": 3,
-    "ESA": 3,
-    "Migration Policy Institute": 4,
-    "Migration Policy Institute Europe": 4,
-    "Reuters World": 5,
-    "Associated Press": 5,
-    "International Crisis Group": 5,
-    "Интерфакс": 4,
-    "Коммерсант": 4,
-    "BBC World": 4,
+    feed["name"]: feed["weight"]
+    for feed in FEEDS
+}
 
-    # Наука и технологии
-    "N+1": 3,
-    "ScienceDaily": 2,
-    "Ars Technica": 2,
-    "Хабр": 2,
-    "TechCrunch": 2,
-    "The Verge": 1,
-
-    # Общая новостная повестка
-    "РБК": 2,
-    "ТАСС": 1,
-} 
 KEYWORDS = {
     "срочно": 5, "война": 4, "переговор": 4, "санкц": 4,
     "эконом": 3, "нефть": 3, "газ": 3, "рынок": 3,
@@ -136,7 +354,51 @@ KEYWORDS = {
 def clean(value):
     value = html.unescape(value or "").replace("\n", " ").replace("\r", " ")
     return " ".join(value.split()).strip()
+TRANSLATION_CACHE = {}
 
+
+def has_cyrillic(text):
+    """Проверяет, присутствует ли в тексте кириллица."""
+    return any("а" <= char.lower() <= "я" or char.lower() == "ё"
+               for char in text)
+
+
+def translate_to_russian(text, language="auto"):
+    """
+    Переводит текст на русский.
+
+    При любой ошибке возвращает исходный текст,
+    поэтому публикация не будет сорвана.
+    """
+    text = clean(text)
+
+    if not text:
+        return ""
+
+    if language == "ru" or has_cyrillic(text):
+        return text
+
+    cache_key = text[:4500]
+
+    if cache_key in TRANSLATION_CACHE:
+        return TRANSLATION_CACHE[cache_key]
+
+    try:
+        translated = GoogleTranslator(
+            source="auto",
+            target="ru",
+        ).translate(cache_key)
+
+        translated = clean(translated)
+
+        if translated:
+            TRANSLATION_CACHE[cache_key] = translated
+            return translated
+
+    except Exception as error:
+        print(f"Перевод временно недоступен: {error}")
+
+    return text
 def fingerprint(title, link):
     raw = f"{title.lower().strip()}|{link.strip()}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
@@ -530,7 +792,13 @@ def remove_duplicates(items):
 def collect():
     items = []
 
-    for source, url in FEEDS:
+    for feed_info in FEEDS:
+        source = feed_info["name"]
+        url = feed_info["url"]
+        category = feed_info["category"]
+        icon = feed_info["icon"]
+        language = feed_info["language"]
+
         try:
             feed = feedparser.parse(url)
 
@@ -543,7 +811,10 @@ def collect():
             for entry in feed.entries[:20]:
                 title = clean(getattr(entry, "title", ""))
                 link = clean(getattr(entry, "link", ""))
-                summary = clean(getattr(entry, "summary", ""))
+                summary = clean(
+                    getattr(entry, "summary", "")
+                    or getattr(entry, "description", "")
+                )
 
                 if len(title) < 20 or not link:
                     continue
@@ -557,17 +828,23 @@ def collect():
                     "source": source,
                     "score": news_score,
                     "image": find_image(entry, link),
+                    "category": category,
+                    "icon": icon,
+                    "language": language,
                 })
 
                 added += 1
 
-            print(f"{source}: получено {added} новостей")
+            print(f"{icon} {source}: получено {added} новостей")
 
         except Exception as error:
-            print(f"Источник временно недоступен: {source} — {error}")
+            print(
+                f"Источник временно недоступен: "
+                f"{source} — {error}"
+            )
             continue
 
-        sorted_items = sorted(
+    sorted_items = sorted(
         items,
         key=lambda item: item["score"],
         reverse=True,
@@ -582,58 +859,83 @@ def source_domain(url):
     except Exception:
         return ""
 def build_post(item):
-    title = html.escape(item["title"])
+    original_title = clean(item.get("title", ""))
+    original_summary = clean(item.get("summary", ""))
 
-    summary = clean(item["summary"])
+    language = item.get("language", "auto")
+    icon = item.get("icon", "📰")
+    category = item.get("category", "НОВОСТИ")
 
-    # Удаляем HTML
-    summary = BeautifulSoup(summary, "html.parser").get_text(" ", strip=True)
+    translated_title = translate_to_russian(
+        original_title,
+        language,
+    )
 
-    # Удаляем дубли заголовка
-    if summary.lower().startswith(item["title"].lower()):
-        summary = summary[len(item["title"]):].strip()
+    # Сначала очищаем описание от HTML
+    plain_summary = BeautifulSoup(
+        original_summary,
+        "html.parser",
+    ).get_text(" ", strip=True)
 
-    if len(summary) > 280:
-        summary = summary[:277].rsplit(" ", 1)[0] + "..."
+    if plain_summary.lower().startswith(
+        original_title.lower()
+    ):
+        plain_summary = plain_summary[
+            len(original_title):
+        ].strip()
 
-    label =     fact_sources = {
-        "Today I Found Out",
-        "Damn Interesting",
-        "Now I Know",
-    }
+    translated_summary = translate_to_russian(
+        plain_summary,
+        language,
+    )
 
-    source_name = item.get("source", "Неизвестный источник")
+    if len(translated_summary) > 320:
+        translated_summary = (
+            translated_summary[:317].rsplit(" ", 1)[0]
+            + "..."
+        )
+
+    source_name = item.get(
+        "source",
+        "Неизвестный источник",
+    )
     article_link = item.get("link", "")
 
-    if source_name in fact_sources:
-        label = "🧠 ИНТЕРЕСНЫЙ ФАКТ"
-    elif item["score"] >= 12:
-        label = "🚨 СРОЧНО"
-    elif item["score"] >= 8:
-        label = "⚡ ВАЖНО"
-    else:
-        label = "📰 НОВОСТИ"
-
+    safe_title = html.escape(translated_title)
+    safe_summary = html.escape(translated_summary)
     safe_source = html.escape(source_name)
     safe_link = html.escape(article_link, quote=True)
+    safe_category = html.escape(category)
+
+    if item.get("score", 0) >= 12:
+        importance = "🚨 СРОЧНО"
+    elif item.get("score", 0) >= 8:
+        importance = "⚡ ВАЖНО"
+    else:
+        importance = ""
+
+    heading = f"{icon} {safe_category}"
+
+    if importance:
+        heading += f" · {importance}"
 
     text = f"""
-<b>{label}</b>
+<b>{heading}</b>
 
-<b>{title}</b>
+<b>{safe_title}</b>
 
-📝 {html.escape(summary)}
+📝 {safe_summary}
 
-🌍 <b>Источник:</b> {safe_source}
+{icon} <b>Источник:</b> {safe_source}
 
 🔗 <b>Оригинал:</b>
 {safe_link}
 
 ━━━━━━━━━━━━━━
-
 📡 <b>NEWS RADAR</b>
 🔔 @newsRadar2026
 """
+
     return text.strip()
 def fit_caption(text, limit=1024):
     """Сокращает подпись к фотографии, сохраняя источник и ссылку."""
@@ -728,7 +1030,12 @@ def collect_digest_items(hours=12):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     items = []
 
-    for source_name, feed_url in FEEDS:
+    for feed_info in FEEDS:
+    source_name = feed_info["name"]
+    feed_url = feed_info["url"]
+    language = feed_info["language"]
+    category = feed_info["category"]
+    icon = feed_info["icon"]
         try:
             feed = feedparser.parse(feed_url)
 
@@ -751,6 +1058,9 @@ def collect_digest_items(hours=12):
                     continue
 
                 items.append({
+                    "language": language,
+                    "category": category,
+                    "icon": icon,
                     "title": title,
                     "link": link,
                     "summary": summary,
@@ -802,13 +1112,17 @@ def build_digest(items, max_items=12):
     ]
 
     for number, item in enumerate(selected, start=1):
-        safe_title = html.escape(item["title"])
+        translated_title = translate_to_russian(
+    item["title"],
+    item.get("language", "auto"),
+)
+safe_title = html.escape(translated_title)
         safe_source = html.escape(item["source"])
         safe_link = html.escape(item["link"], quote=True)
 
         parts.append(
             f"<b>{number}. {safe_title}</b>\n"
-            f"🌍 {safe_source}\n"
+            f'{item.get("icon", "🌍")} {safe_source}\n'
             f'🔗 <a href="{safe_link}">Открыть новость</a>'
         )
         parts.append("")
