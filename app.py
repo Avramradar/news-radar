@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.parse import urljoin, urljoin
 from bs4 import BeautifulSoup
+from datetime import datetime, timezone, timedelta
 
 import feedparser
 import requests
@@ -654,6 +655,199 @@ def fit_caption(text, limit=1024):
     beginning = text[:available].rstrip()
 
     return beginning + "…\n" + ending
+    DIGEST_KEYWORDS = {
+    "война": 5,
+    "атака": 4,
+    "удар": 4,
+    "кризис": 4,
+    "санкции": 4,
+    "переговоры": 4,
+    "президент": 3,
+    "правительство": 3,
+    "экономика": 3,
+    "нефть": 3,
+    "газ": 3,
+    "рынок": 3,
+    "банк": 3,
+    "инфляция": 3,
+    "искусственный интеллект": 4,
+    "ии": 3,
+    "технологии": 2,
+    "наука": 2,
+    "космос": 3,
+    "nasa": 3,
+    "war": 5,
+    "attack": 4,
+    "crisis": 4,
+    "sanctions": 4,
+    "economy": 3,
+    "market": 3,
+    "artificial intelligence": 4,
+    "technology": 2,
+    "science": 2,
+    "space": 3,
+}
+
+
+def digest_entry_time(entry):
+    """Возвращает время публикации RSS-записи в UTC."""
+    for field in ("published_parsed", "updated_parsed"):
+        value = entry.get(field)
+
+        if value:
+            try:
+                return datetime(
+                    value.tm_year,
+                    value.tm_mon,
+                    value.tm_mday,
+                    value.tm_hour,
+                    value.tm_min,
+                    value.tm_sec,
+                    tzinfo=timezone.utc,
+                )
+            except Exception:
+                continue
+
+    return None
+
+
+def digest_score(title, summary):
+    """Оценивает важность новости для сводки."""
+    combined = f"{title} {summary}".lower()
+    score = 0
+
+    for keyword, weight in DIGEST_KEYWORDS.items():
+        if keyword in combined:
+            score += weight
+
+    return score
+
+
+def collect_digest_items(hours=12):
+    """Собирает новости из всех RSS без изменения posted.json."""
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+    items = []
+
+    for source_name, feed_url in FEEDS:
+        try:
+            feed = feedparser.parse(feed_url)
+
+            for entry in feed.entries[:20]:
+                title = clean(entry.get("title", ""))
+                link = entry.get("link", "")
+                summary = clean(
+                    entry.get("summary")
+                    or entry.get("description")
+                    or ""
+                )
+
+                if not title or not link:
+                    continue
+
+                published_at = digest_entry_time(entry)
+
+                # Записи без даты принимаем, записи старше 12 часов пропускаем
+                if published_at and published_at < cutoff:
+                    continue
+
+                items.append({
+                    "title": title,
+                    "link": link,
+                    "summary": summary,
+                    "source": source_name,
+                    "score": digest_score(title, summary),
+                    "published_at": published_at,
+                })
+
+        except Exception as error:
+            print(f"Ошибка источника сводки {source_name}: {error}")
+
+    items.sort(
+        key=lambda item: (
+            item["score"],
+            item["published_at"] or datetime.min.replace(
+                tzinfo=timezone.utc
+            ),
+        ),
+        reverse=True,
+    )
+
+    return remove_duplicates(items)
+
+
+def build_digest(items, max_items=12):
+    """Создаёт расширенную утреннюю или вечернюю сводку."""
+    current_hour = datetime.now().hour
+
+    if current_hour < 15:
+        digest_title = "☀️ УТРЕННЯЯ СВОДКА"
+    else:
+        digest_title = "🌙 ВЕЧЕРНЯЯ СВОДКА"
+
+    selected = items[:max_items]
+
+    if not selected:
+        return (
+            f"<b>{digest_title}</b>\n\n"
+            "За последние часы значимых обновлений не найдено.\n\n"
+            "📡 <b>NEWS RADAR</b>\n"
+            "🔔 @newsRadar2026"
+        )
+
+    parts = [
+        f"<b>{digest_title}</b>",
+        "",
+        "Главные события за последние 12 часов:",
+        "",
+    ]
+
+    for number, item in enumerate(selected, start=1):
+        safe_title = html.escape(item["title"])
+        safe_source = html.escape(item["source"])
+        safe_link = html.escape(item["link"], quote=True)
+
+        parts.append(
+            f"<b>{number}. {safe_title}</b>\n"
+            f"🌍 {safe_source}\n"
+            f'🔗 <a href="{safe_link}">Открыть новость</a>'
+        )
+        parts.append("")
+
+    parts.extend([
+        "━━━━━━━━━━━━━━",
+        "📡 <b>NEWS RADAR</b>",
+        "🔔 @newsRadar2026",
+    ])
+
+    text = "\n".join(parts)
+
+    # Telegram допускает до 4096 символов в обычном сообщении
+    return text[:4000]
+
+
+def send_digest():
+    """Собирает и отправляет сводку отдельным сообщением."""
+    items = collect_digest_items(hours=12)
+    text = build_digest(items)
+
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        data={
+            "chat_id": CHANNEL,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        },
+        timeout=30,
+    )
+
+    if not response.ok:
+        raise RuntimeError(
+            f"Ошибка отправки сводки: {response.status_code} "
+            f"{response.text[:500]}"
+        )
+
+    print(f"Сводка опубликована. Новостей: {min(len(items), 12)}")
 def send(text, image_url=None):
     # Сначала пробуем отправить публикацию с фотографией
     if image_url:
@@ -731,6 +925,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    mode = os.getenv("MODE", "news").lower()
+
+    if mode == "digest":
+        send_digest()
+    else:
+        main()
         
  
