@@ -1031,11 +1031,11 @@ def collect_digest_items(hours=12):
     items = []
 
     for feed_info in FEEDS:
-    source_name = feed_info["name"]
-    feed_url = feed_info["url"]
-    language = feed_info["language"]
-    category = feed_info["category"]
-    icon = feed_info["icon"]
+        source_name = feed_info["name"]
+        feed_url = feed_info["url"]
+        language = feed_info["language"]
+        category = feed_info["category"]
+        icon = feed_info["icon"]
         try:
             feed = feedparser.parse(feed_url)
 
