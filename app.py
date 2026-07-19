@@ -1113,10 +1113,10 @@ def build_digest(items, max_items=12):
 
     for number, item in enumerate(selected, start=1):
         translated_title = translate_to_russian(
-    item["title"],
-    item.get("language", "auto"),
-)
-safe_title = html.escape(translated_title)
+        item["title"],
+        item.get("language", "auto"),
+        )
+        safe_title = html.escape(translated_title)
         safe_source = html.escape(item["source"])
         safe_link = html.escape(item["link"], quote=True)
 
@@ -1127,7 +1127,7 @@ safe_title = html.escape(translated_title)
         )
         parts.append("")
 
-    parts.extend([
+        parts.extend([
         "━━━━━━━━━━━━━━",
         "📡 <b>NEWS RADAR</b>",
         "🔔 @newsRadar2026",
