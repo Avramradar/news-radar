@@ -37,7 +37,12 @@ class RssFoodSource(BaseSource):
         posts: list[FoodPost] = []
 
         for feed_url in feed_urls:
+        try:
+            print(f"Проверка RSS: {feed_url}")
             feed = feedparser.parse(feed_url)
+        except Exception as error:
+            print(f"Ошибка RSS {feed_url}: {error}")
+            continue 
 
             for entry in feed.entries[:2]:
                 title = str(entry.get("title", "")).strip()
