@@ -36,7 +36,7 @@ class RssFoodSource(BaseSource):
 
         posts: list[FoodPost] = []
 
-        for feed_url in feed_urls:
+    for feed_url in feed_urls:
         try:
             print(f"Проверка RSS: {feed_url}")
             feed = feedparser.parse(feed_url)
