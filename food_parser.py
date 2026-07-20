@@ -27,12 +27,40 @@ def extract_title(text: str) -> str:
 
 
 def extract_difficulty(text: str) -> int:
-    """Определяет сложность по служебному тегу."""
+    """Определяет сложность рецепта по тегам и содержанию."""
     for tag, level in DIFFICULTY_MAP.items():
         if tag in text:
             return level
 
-    return 1
+    lowered = text.lower()
+
+    hard_words = (
+        "сложный",
+        "профессиональный",
+        "су-вид",
+        "темперировать",
+        "ферментация",
+        "многоэтапный",
+        "оставить на ночь",
+    )
+
+    medium_words = (
+        "духовка",
+        "выпекать",
+        "мариновать",
+        "дрожжи",
+        "тесто",
+        "запекать",
+        "тушить",
+    )
+
+    if any(word in lowered for word in hard_words):
+        return 3
+
+    if any(word in lowered for word in medium_words):
+        return 2
+
+    return 1 
 
 
 def extract_category(text: str) -> str:
