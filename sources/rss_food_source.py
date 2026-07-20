@@ -64,7 +64,6 @@ def fetch(self) -> list[FoodPost]:
                         image_url=image_url,
                     )
                 )
-
         return posts
 
     @staticmethod
@@ -81,7 +80,6 @@ def fetch(self) -> list[FoodPost]:
         ).hexdigest()
 
         return int(digest[:12], 16)
-
     @staticmethod
     def _extract_image(entry) -> str:
         media_content = entry.get("media_content", [])
