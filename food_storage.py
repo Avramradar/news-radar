@@ -53,7 +53,7 @@ def save_storage(data: dict[str, Any]) -> None:
             ensure_ascii=False,
             indent=2,
         )
-        def get_recipe_by_message_id(message_id: int) -> dict | None:
+def get_recipe_by_message_id(message_id: int) -> dict | None:
     """
     Возвращает рецепт по message_id.
     """
