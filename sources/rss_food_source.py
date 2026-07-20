@@ -86,7 +86,7 @@ class RssFoodSource(BaseSource):
         ).hexdigest()
 
         return int(digest[:12], 16)
-            @staticmethod
+    @staticmethod
     def _extract_image(entry) -> str:
         media_content = entry.get("media_content", [])
 
