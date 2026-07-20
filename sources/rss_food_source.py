@@ -76,7 +76,7 @@ class RssFoodSource(BaseSource):
                     )
                 )
 
-        return posts
+    return posts
     @staticmethod
     def _clean_html(value: str) -> str:
         clean = re.sub(r"<[^>]+>", " ", value)
