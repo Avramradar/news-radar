@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from food_service import publish_recipe
 from sources.food_source import FoodSource
+from sources.rss_food_source import RssFoodSource
 
 
 def main() -> None:
-    source = FoodSource()
-    posts = source.fetch()
+    rss = RssFoodSource()
+    posts = rss.fetch() 
 
     if not posts:
         print("Новых рецептов нет.")
