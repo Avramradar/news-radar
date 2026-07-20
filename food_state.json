@@ -1,4 +1,14 @@
 {
-  "recipes": [],
+  "recipes": [
+    {
+      "title": "Тестовый рецепт Food Radar",
+      "difficulty": 1,
+      "category": "другое",
+      "source_url": "https://t.me/FoodRadarDaily",
+      "image_url": "",
+      "message_id": 1,
+      "published": true
+    }
+  ],
   "published_to_news": []
 }
