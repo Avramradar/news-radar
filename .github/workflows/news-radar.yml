@@ -31,7 +31,7 @@ concurrency:
 jobs:
   publish-news:
     if: >
-      github.event_name == 'workflow_dispatch' && inputs.mode == 'news' ||
+      github.event_name == 'workflow_dispatch' && (inputs.mode == 'news' || inputs.mode == 'food') || 
       github.event_name == 'schedule' && github.event.schedule == '3,18,33,48 * * * *'
 
     runs-on: ubuntu-latest
