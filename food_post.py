@@ -3,6 +3,7 @@ from __future__ import annotations
 from food_formatter import format_recipe
 from food_parser import parse_recipe_post
 from food_storage import load_storage, save_storage
+from food_result import ProcessResult
 
 
 def process_recipe(
@@ -10,7 +11,7 @@ def process_recipe(
     message_id: int,
     source_url: str,
     image_url: str = "",
-) -> str:
+) -> ProcessResult: 
     """
     Обрабатывает один рецепт, сохраняет его
     и возвращает текст для публикации.
