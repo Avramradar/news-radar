@@ -34,4 +34,8 @@ def process_recipe(
 
     save_storage(storage)
 
-    return format_recipe(recipe)
+    return ProcessResult(
+    success=True,
+    duplicate=False,
+    text=format_recipe(recipe),
+    ) 
