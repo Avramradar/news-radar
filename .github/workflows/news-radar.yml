@@ -66,6 +66,7 @@ jobs:
           FOOD_TEXT: ${{ vars.FOOD_TEXT }}
           FOOD_SOURCE_URL: ${{ vars.FOOD_SOURCE_URL }}
           FOOD_MESSAGE_ID: ${{ vars.FOOD_MESSAGE_ID }}
+          FOOD_RSS_URLS: ${{ vars.FOOD_RSS_URLS }}
           FOOD_IMAGE_URL: ${{ vars.FOOD_IMAGE_URL }}
         run: python food_runner.py
       - name: Сохранить posted.json
