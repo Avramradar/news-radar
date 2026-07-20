@@ -35,46 +35,45 @@ class RssFoodSource(BaseSource):
         ]
 
         posts: list[FoodPost] = []
+ for feed_url in feed_urls:
+    try:
+        print(f"Проверка RSS: {feed_url}")
+        feed = feedparser.parse(feed_url)
+    except Exception as error:
+        print(f"Ошибка RSS {feed_url}: {error}")
+        continue 
 
-    for feed_url in feed_urls:
-        try:
-            print(f"Проверка RSS: {feed_url}")
-            feed = feedparser.parse(feed_url)
-        except Exception as error:
-            print(f"Ошибка RSS {feed_url}: {error}")
-            continue 
+        for entry in feed.entries[:2]:
+            title = str(entry.get("title", "")).strip()
+            source_url = str(entry.get("link", "")).strip()
 
-            for entry in feed.entries[:2]:
-                title = str(entry.get("title", "")).strip()
-                source_url = str(entry.get("link", "")).strip()
+            if not title or not source_url:
+                continue
 
-                if not title or not source_url:
-                    continue
-
-                raw_summary = str(
-                    entry.get(
-                        "summary",
-                        entry.get("description", ""),
-                    )
+            raw_summary = str(
+                entry.get(
+                    "summary",
+                    entry.get("description", ""),
                 )
+            )
 
-                summary = self._clean_html(raw_summary)
-                image_url = self._extract_image(entry)
-                message_id = self._make_message_id(source_url)
+            summary = self._clean_html(raw_summary)
+            image_url = self._extract_image(entry)
+            message_id = self._make_message_id(source_url)
 
-                text = title
+            text = title
 
-                if summary:
-                    text += f"\n\n{summary}"
+            if summary:
+                text += f"\n\n{summary}"
 
-                posts.append(
-                    FoodPost(
-                        text=text,
-                        message_id=message_id,
-                        source_url=source_url,
-                        image_url=image_url,
-                    )
+            posts.append(
+                FoodPost(
+                    text=text,
+                    message_id=message_id,
+                    source_url=source_url,
+                    image_url=image_url,
                 )
+            )
 
     return posts
     @staticmethod
