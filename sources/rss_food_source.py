@@ -15,7 +15,8 @@ class RssFoodSource(BaseSource):
     """Получает публикации из кулинарных RSS-лент."""
 
     def fetch(self) -> list[FoodPost]:
-        urls_text = os.getenv("FOOD_RSS_URLS", "").strip()
+with open("food_sources.txt", encoding="utf-8") as f:
+    urls_text = f.read().strip() 
 
         if not urls_text:
             return []
