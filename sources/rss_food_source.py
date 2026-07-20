@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import html
-import os
 import re
+from pathlib import Path
 
 import feedparser
 
@@ -13,18 +13,25 @@ from .food_source import FoodPost
 
 class RssFoodSource(BaseSource):
     """Получает публикации из кулинарных RSS-лент."""
-    
-def fetch(self) -> list[FoodPost]:
-        with open("food_sources.txt", encoding="utf-8") as f:
-            urls_text = f.read().strip() 
+
+    SOURCE_FILE = Path("food_sources.txt")
+
+    def fetch(self) -> list[FoodPost]:
+        if not self.SOURCE_FILE.exists():
+            print("Файл food_sources.txt не найден.")
+            return []
+
+        urls_text = self.SOURCE_FILE.read_text(
+            encoding="utf-8"
+        ).strip()
 
         if not urls_text:
             return []
 
         feed_urls = [
-            url.strip()
-            for url in urls_text.split(",")
-            if url.strip()
+            line.strip()
+            for line in urls_text.splitlines()
+            if line.strip() and not line.strip().startswith("#")
         ]
 
         posts: list[FoodPost] = []
@@ -32,22 +39,21 @@ def fetch(self) -> list[FoodPost]:
         for feed_url in feed_urls:
             feed = feedparser.parse(feed_url)
 
-            for entry in feed.entries[:5]:
+            for entry in feed.entries[:2]:
                 title = str(entry.get("title", "")).strip()
                 source_url = str(entry.get("link", "")).strip()
 
                 if not title or not source_url:
                     continue
 
-                summary = self._clean_html(
-                    str(
-                        entry.get(
-                            "summary",
-                            entry.get("description", ""),
-                        )
+                raw_summary = str(
+                    entry.get(
+                        "summary",
+                        entry.get("description", ""),
                     )
                 )
 
+                summary = self._clean_html(raw_summary)
                 image_url = self._extract_image(entry)
                 message_id = self._make_message_id(source_url)
 
@@ -64,9 +70,9 @@ def fetch(self) -> list[FoodPost]:
                         image_url=image_url,
                     )
                 )
-        return posts
 
-    @staticmethod
+        return posts
+            @staticmethod
     def _clean_html(value: str) -> str:
         clean = re.sub(r"<[^>]+>", " ", value)
         clean = html.unescape(clean)
@@ -80,7 +86,7 @@ def fetch(self) -> list[FoodPost]:
         ).hexdigest()
 
         return int(digest[:12], 16)
-    @staticmethod
+            @staticmethod
     def _extract_image(entry) -> str:
         media_content = entry.get("media_content", [])
 
@@ -120,4 +126,4 @@ def fetch(self) -> list[FoodPost]:
         if match:
             return html.unescape(match.group(1))
 
-        return "" 
+        return ""
