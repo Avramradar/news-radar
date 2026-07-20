@@ -37,7 +37,7 @@ def send_food_message(text: str, image_url: str = "") -> int:
             },
             timeout=30,
         )
-
+    print("Telegram response:", response.text)
     response.raise_for_status()
 
     result = response.json()
