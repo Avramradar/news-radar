@@ -12,9 +12,15 @@ def process_recipe(
     image_url: str = "",
 ) -> str:
     """
-    Обрабатывает один рецепт и возвращает
-    готовый текст для публикации.
+    Обрабатывает один рецепт, сохраняет его
+    и возвращает текст для публикации.
     """
+
+    storage = load_storage()
+
+    for saved_recipe in storage["recipes"]:
+        if saved_recipe.get("message_id") == message_id:
+            return "Рецепт уже был сохранён."
 
     recipe = parse_recipe_post(
         text=text,
@@ -22,8 +28,6 @@ def process_recipe(
         source_url=source_url,
         image_url=image_url,
     )
-
-    storage = load_storage()
 
     storage["recipes"].append(recipe.__dict__)
 
