@@ -26,6 +26,60 @@
       "image_url": "https://static.vkusnyblog.com/full/uploads/2019/07/kabachkovyi-salat-s-pomidorami-i-pesto.jpg",
       "message_id": 12876438109017,
       "published": true
+    },
+    {
+      "title": "Варенье из малины и клубники",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://povar.ru/recipes/varene_iz_maliny_i_klubniki-20707.html",
+      "image_url": "",
+      "message_id": 66113089021163,
+      "published": true
+    },
+    {
+      "title": "Салат на зиму из фасоли",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://povar.ru/recipes/salat_na_zimu_iz_fasoli-51860.html",
+      "image_url": "",
+      "message_id": 280180343244170,
+      "published": true
+    },
+    {
+      "title": "Ленивый Тарт Татен",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.say7.info/cook/recipe/1757-Lenivyiy-Tart-Taten.html",
+      "image_url": "https://ist.say7.info/img0017/57/1757_0182gez_2214_1024.jpg",
+      "message_id": 95849787847870,
+      "published": true
+    },
+    {
+      "title": "Салат с жареным халуми",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://www.say7.info/cook/recipe/1718-Salat-zharenyim.html",
+      "image_url": "https://ist.say7.info/img0017/18/1718_0134inr_7635_1024.jpg",
+      "message_id": 263330314381778,
+      "published": true
+    },
+    {
+      "title": "Диетолог поделилась лайфхаками, как незаметно добавлять овощи в привычные блюда — читать на Gastronom.ru",
+      "difficulty": 1,
+      "category": "Лайфхак",
+      "source_url": "https://www.gastronom.ru/news/dietolog-podelilas-lajfhakami-kak-nezametno-dobavlyat-ovoshi-v-privychnye-blyuda-1029257",
+      "image_url": "https://images.gastronom.ru/16lDJfwuV5rgyln9dKRMuP2Ir2KUG3-Iurw4PGGIu2c/pr:article-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzLzFiYzBmNTM4LTI0Y2MtNDNhMy04MzAzLTg5OWRjMTg3ZGE2Yy5qcGc.webp",
+      "message_id": 137099719587890,
+      "published": true
+    },
+    {
+      "title": "Можжевеловый соус с малиной к мясу, пошаговый рецепт с фото на 122 ккал",
+      "difficulty": 1,
+      "category": "Суп",
+      "source_url": "https://www.gastronom.ru/recipe/23271/mozhzhevelovyj-sous-s-malinoj-k-myasu",
+      "image_url": "https://images.gastronom.ru/OR8abpfV2qn1v1x4CkncpRhzlqWjkxsf8UtWXami0V4/pr:recipe-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzL2JkMzUxMjIwLWU3NGMtNDVhZi05OGExLWIzMDE4NTUyZjM3MC5qcGc.webp",
+      "message_id": 206343107650459,
+      "published": true
     }
   ],
   "published_to_news": []
