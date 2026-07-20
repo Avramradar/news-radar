@@ -14,7 +14,6 @@ def send_food_message(text: str, image_url: str = "") -> int:
     Публикует сообщение в Food Radar.
     Возвращает message_id опубликованного поста.
     """
-
     if image_url:
         response = requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
@@ -26,6 +25,23 @@ def send_food_message(text: str, image_url: str = "") -> int:
             },
             timeout=30,
         )
+
+        if not response.ok:
+            print(
+                "Photo failed, sending text instead:",
+                response.text,
+            )
+
+            response = requests.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                data={
+                    "chat_id": FOOD_CHANNEL,
+                    "text": text[:4096],
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": False,
+                },
+                timeout=30,
+            )
     else:
         response = requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
@@ -36,7 +52,7 @@ def send_food_message(text: str, image_url: str = "") -> int:
                 "disable_web_page_preview": False,
             },
             timeout=30,
-        )
+        ) 
     print("Telegram response:", response.text)
     response.raise_for_status()
 
