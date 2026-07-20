@@ -3,3 +3,10 @@ https://povar.ru/rss/
 https://www.say7.info/rss.xml
 https://www.gastronom.ru/rss
 https://www.kuroed.com/rss/
+https://www.gotovim.ru/rss/
+https://www.good-cook.ru/rss/
+https://www.russianfood.com/rss/
+https://eda.ru/rss
+https://www.koolinar.ru/rss
+https://www.kedem.ru/rss/
+https://www.khlebopechka.ru/rss/
