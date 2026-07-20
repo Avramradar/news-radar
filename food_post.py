@@ -21,7 +21,11 @@ def process_recipe(
 
     for saved_recipe in storage["recipes"]:
         if saved_recipe.get("message_id") == message_id:
-            return "Рецепт уже был сохранён."
+            return ProcessResult(
+    success=False,
+    duplicate=True,
+    text="Рецепт уже был сохранён.",
+)
 
     recipe = parse_recipe_post(
         text=text,
