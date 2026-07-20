@@ -14,6 +14,7 @@ class FoodPost:
     message_id: int
     source_url: str
     image_url: str = ""
+    difficulty: int = 1
 
 
 class FoodSource(BaseSource):
