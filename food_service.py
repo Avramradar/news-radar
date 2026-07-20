@@ -32,13 +32,3 @@ def publish_recipe(post: FoodPost) -> str:
         "Рецепт опубликован в Food Radar. "
         f"message_id: {published_message_id}"
     ) 
-
-    if formatted_text == "Рецепт уже был сохранён.":
-        return formatted_text
-
-    send_food_message(
-        text=formatted_text,
-        image_url=post.image_url,
-    )
-
-    return "OK"
