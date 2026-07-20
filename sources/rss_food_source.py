@@ -13,10 +13,10 @@ from .food_source import FoodPost
 
 class RssFoodSource(BaseSource):
     """Получает публикации из кулинарных RSS-лент."""
-
-    def fetch(self) -> list[FoodPost]:
-with open("food_sources.txt", encoding="utf-8") as f:
-    urls_text = f.read().strip() 
+    
+def fetch(self) -> list[FoodPost]:
+        with open("food_sources.txt", encoding="utf-8") as f:
+            urls_text = f.read().strip() 
 
         if not urls_text:
             return []
