@@ -8,6 +8,24 @@
       "image_url": "",
       "message_id": 1,
       "published": true
+    },
+    {
+      "title": "Как стерилизовать банки для закаток. 4 проверенных способа",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.vkusnyblog.com/kak-sterilizovat-banki-dlya-zakatok-4-proverennyh-sposoba/",
+      "image_url": "https://static.vkusnyblog.com/full/uploads/2018/08/tomaty-v-ss-bez-uksusa.jpg",
+      "message_id": 73376849039553,
+      "published": true
+    },
+    {
+      "title": "Летний кабачковый салат с помидорами и песто",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://www.vkusnyblog.com/recipe/letnij-kabachkovyj-salat-s-pomidorami-i-pesto/",
+      "image_url": "https://static.vkusnyblog.com/full/uploads/2019/07/kabachkovyi-salat-s-pomidorami-i-pesto.jpg",
+      "message_id": 12876438109017,
+      "published": true
     }
   ],
   "published_to_news": []
