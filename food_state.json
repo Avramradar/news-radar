@@ -80,6 +80,24 @@
       "image_url": "https://images.gastronom.ru/OR8abpfV2qn1v1x4CkncpRhzlqWjkxsf8UtWXami0V4/pr:recipe-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzL2JkMzUxMjIwLWU3NGMtNDVhZi05OGExLWIzMDE4NTUyZjM3MC5qcGc.webp",
       "message_id": 206343107650459,
       "published": true
+    },
+    {
+      "title": "Салат с фасолью на зиму",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://povar.ru/recipes/salat_s_fasoliu_na_zimu-11630.html",
+      "image_url": "",
+      "message_id": 223645527623753,
+      "published": true
+    },
+    {
+      "title": "Отбивные из свинины в кляре",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://povar.ru/recipes/otbivnye_iz_svininy_v_klyare-13521.html",
+      "image_url": "",
+      "message_id": 201802100100848,
+      "published": true
     }
   ],
   "published_to_news": []
