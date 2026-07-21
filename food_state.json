@@ -224,6 +224,60 @@
       "image_url": "https://vikalinka.com/wp-content/uploads/2026/07/Ground-Beef-Recipe-Roundup-2-576x1024.jpg",
       "message_id": 190479756209706,
       "published": true
+    },
+    {
+      "title": "Рагу в аэрогриле, пошаговый рецепт с фото на 277 ккал",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.gastronom.ru/recipe/65772/ragu-v-aerogrile",
+      "image_url": "https://images.gastronom.ru/_fEix4OhbL7KnJIZ8FFBUcm6ETJxWYpf6jhcPMgRnEM/pr:recipe-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzL2U2OGM2NWY1LTljMzUtNDgxMy1hYzY3LTU2OTU3YzE5M2VlNi5qcGc.webp",
+      "message_id": 39391425356318,
+      "published": true
+    },
+    {
+      "title": "Кокосовые сырники в духовке, пошаговый рецепт с фото на 258 ккал",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.gastronom.ru/recipe/64883/kokosovye-syrniki-v-duhovke",
+      "image_url": "https://images.gastronom.ru/yssfCMkQcewOeDPDJ52pIIlmv_myUmif78R0t00NMAQ/pr:recipe-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzL2JlMjFiMDMwLTBhZjYtNGUwOS05MDkzLWM5OTFhZjZmMTUwYS5qcGc.webp",
+      "message_id": 16329151612684,
+      "published": true
+    },
+    {
+      "title": "Что купить в магазине для заготовок на всю неделю",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://menunedeli.ru/2026/07/chto-kupit-v-magazine-dlya-zagotovok-na-vsyu-nedelyu/",
+      "image_url": "",
+      "message_id": 8891742544858,
+      "published": true
+    },
+    {
+      "title": "Меню на 7 дней из 3 продуктов: творог, курица, рыба",
+      "difficulty": 1,
+      "category": "Основное блюдо",
+      "source_url": "https://menunedeli.ru/2026/07/chto-prigotovit-na-etoj-nedele-esli-u-vas-est-tvorog-kurica-i-ryba/",
+      "image_url": "",
+      "message_id": 75566936897455,
+      "published": true
+    },
+    {
+      "title": "Кексы пасхальные",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://vpuzo.com/recepty-sladostey/deserty/vypechka/76662-keksy-pashalnye.html",
+      "image_url": "",
+      "message_id": 238360461496492,
+      "published": true
+    },
+    {
+      "title": "Салат из редиски со свежим огурцом и консервированым нутом",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://vpuzo.com/salaty/salat-iz-rediski/76661-salat-iz-rediski-so-svezhim-ogurcom-i-konservirovanym-nutom.html",
+      "image_url": "",
+      "message_id": 213058668519152,
+      "published": true
     }
   ],
   "published_to_news": []
