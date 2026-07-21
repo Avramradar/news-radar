@@ -10,9 +10,11 @@ https://eda.ru/rss
 https://www.koolinar.ru/rss
 https://www.kedem.ru/rss/
 https://www.khlebopechka.ru/rss/
-https://www.olgasflavorfactory.com/feed/
-https://immigrantstable.com/feed/
-https://www.curiouscuisiniere.com/feed/
-https://www.babaganosh.org/feed/
-https://www.lavenderandmacarons.com/feed/
-https://vikalinka.com/feed/
+https://webspoon.ru/rss
+https://menunedeli.ru/feed/
+https://volshebnaya-eda.ru/feed/
+https://vkusblog.ru/feed/
+https://1000.menu/rss
+https://finecooking.ru/rss.xml
+https://alimero.ru/rss.xml
+https://vpuzo.com/rss.xml
