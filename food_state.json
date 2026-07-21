@@ -98,6 +98,132 @@
       "image_url": "",
       "message_id": 201802100100848,
       "published": true
+    },
+    {
+      "title": "Кабачковые оладьи на кефире, пошаговый рецепт с фото на 287 ккал",
+      "difficulty": 1,
+      "category": "Напиток",
+      "source_url": "https://www.gastronom.ru/recipe/65547/kabachkovye-oladi-na-kefire",
+      "image_url": "https://images.gastronom.ru/c3uF7GyTeYU7WC3oJeI9wb-3eBuIIOsmmIpejQ8QXC8/pr:recipe-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzLzQwN2IyMWU4LTM0OGUtNGJmNi04YTZmLTQxYzY5ODU5YzUwMC5qcGc.webp",
+      "message_id": 161570238183079,
+      "published": true
+    },
+    {
+      "title": "Как приготовить колд брю дома: холодный кофе с насыщенным вкусом без кофемашины — читать на Gastronom.ru",
+      "difficulty": 1,
+      "category": "Напиток",
+      "source_url": "https://www.gastronom.ru/text/kak-prigotovit-kold-bryu-doma-holodnyj-kofe-s-nasyshennym-vkusom-bez-kofemashiny-1029252",
+      "image_url": "https://images.gastronom.ru/URpN-vckGsj2fFuPJqTOhS25p6uF3rxk4l7gLQeAuFY/pr:article-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzL2U4ZTAyMWU5LTY1ODUtNDFiYS04OTExLWUyODFkNjQ4NDhjMS5qcGc.webp",
+      "message_id": 161304288009646,
+      "published": true
+    },
+    {
+      "title": "Easy Pickled Red Onions",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.olgasflavorfactory.com/recipes/condiments-sauces/easy-pickled-red-onions/",
+      "image_url": "",
+      "message_id": 102838580297889,
+      "published": true
+    },
+    {
+      "title": "Lemon Garlic Baked Cod",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.olgasflavorfactory.com/recipes/lemon-garlic-baked-cod/",
+      "image_url": "",
+      "message_id": 211655179183873,
+      "published": true
+    },
+    {
+      "title": "17 Road Trip Snacks and Drinks That Make the Drive Fly By",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://immigrantstable.com/17-road-trip-snacks-drinks-drive-fly-by/",
+      "image_url": "",
+      "message_id": 268392892601729,
+      "published": true
+    },
+    {
+      "title": "17 Pickle Recipes for the Farmers Market Haul You Couldn't Resist",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://immigrantstable.com/17-pickle-recipes-farmers-market-haul/",
+      "image_url": "",
+      "message_id": 2712869589480,
+      "published": true
+    },
+    {
+      "title": "Pak Mo Krob (Thai Vietnamese Crispy Rice Paper Wrap)",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.curiouscuisiniere.com/pak-mo-krob-thai-vietnamese-crispy-rice-paper-wrap/",
+      "image_url": "",
+      "message_id": 275332648834955,
+      "published": true
+    },
+    {
+      "title": "Sopa Negra (Costa Rican Black Bean Soup)",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.curiouscuisiniere.com/sopa-negra-costa-rican-black-bean-soup/",
+      "image_url": "",
+      "message_id": 86461614804622,
+      "published": true
+    },
+    {
+      "title": "Kielbasa Pasta (20 Minute Dinner)",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.babaganosh.org/kielbasa-pasta/",
+      "image_url": "https://www.babaganosh.org/wp-content/uploads/2026/07/kielbasa-pasta-7-300x300.jpg",
+      "message_id": 107866959707098,
+      "published": true
+    },
+    {
+      "title": "Pork Nuggets with Dipping Sauces (Oven and Air Fryer)",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.babaganosh.org/pork-nuggets/",
+      "image_url": "https://www.babaganosh.org/wp-content/uploads/2026/07/pork-nuggets-21-300x300.jpg",
+      "message_id": 179118618593268,
+      "published": true
+    },
+    {
+      "title": "Grilled Mustard Chicken Thighs",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.lavenderandmacarons.com/grilled-mustard-chicken-thighs/",
+      "image_url": "",
+      "message_id": 140580352871928,
+      "published": true
+    },
+    {
+      "title": "Chicken Romaine Salad With Honey Caramelized Cashews",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://www.lavenderandmacarons.com/chicken-romaine-salad-caramelised-cashews/",
+      "image_url": "",
+      "message_id": 45577591888811,
+      "published": true
+    },
+    {
+      "title": "Hugo Spritz",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://vikalinka.com/hugo-spritz/",
+      "image_url": "https://vikalinka.com/wp-content/uploads/2026/07/Hugo-Spritz-1-683x1024.jpg",
+      "message_id": 51512103650302,
+      "published": true
+    },
+    {
+      "title": "The Mediterranean Recipes I Reach for When Life Needs More Sunshine",
+      "difficulty": 1,
+      "category": "Рецепт",
+      "source_url": "https://vikalinka.com/mediterranean-recipes-roundup/",
+      "image_url": "https://vikalinka.com/wp-content/uploads/2026/07/Ground-Beef-Recipe-Roundup-2-576x1024.jpg",
+      "message_id": 190479756209706,
+      "published": true
     }
   ],
   "published_to_news": []
