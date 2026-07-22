@@ -129,7 +129,7 @@ def main() -> None:
             latest_food_message_id,
         )
         return
-
+    send_intro()
     news_message_id = copy_message(
         latest_food_message_id
     )
