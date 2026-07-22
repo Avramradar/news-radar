@@ -18,3 +18,13 @@ https://1000.menu/rss
 https://finecooking.ru/rss.xml
 https://alimero.ru/rss.xml
 https://vpuzo.com/rss.xml
+https://www.iamcook.ru/rss
+https://www.edimdoma.ru/retsepty.rss
+https://smak.ua/feed
+https://hozoboz.com/feed
+https://www.gotovim-doma.ru/rss
+https://www.kulina.ru/rss
+https://www.passion.ru/rss/recipes.xml
+https://www.7dach.ru/feed
+https://zira.uz/ru/feed/
+https://eda.show/feed
