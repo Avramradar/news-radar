@@ -314,6 +314,24 @@
       "image_url": "https://images.gastronom.ru/msf4KM4vj_H58Sqt6FHm1MRqfAvG0VY9WIP0oH9qrPc/pr:article-cover-image/g:ce/rs:auto:0:0:0/L2Ntcy9hbGwtaW1hZ2VzLzNlY2FjZDlhLTZiZWYtNDE1ZS04ZmQ2LTFjODYyNjM5NzZiYy5qcGc.webp",
       "message_id": 215033257551672,
       "published": true
+    },
+    {
+      "title": "Теплый салат \"Капрезе\" с фарфале",
+      "difficulty": 1,
+      "category": "Салат",
+      "source_url": "https://povar.ru/recipes/teplyi_salat_kapreze_s_farfale-97005.html",
+      "image_url": "",
+      "message_id": 204383074105826,
+      "published": true
+    },
+    {
+      "title": "Творожная паста для бутербродов",
+      "difficulty": 1,
+      "category": "Основное блюдо",
+      "source_url": "https://povar.ru/recipes/tvorojnaya_pasta_dlya_buterbrodov-97012.html",
+      "image_url": "",
+      "message_id": 75256155306038,
+      "published": true
     }
   ],
   "published_to_news": []
