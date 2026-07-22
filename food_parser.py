@@ -151,11 +151,12 @@ def parse_recipe_post(
 ) -> Recipe:
     """Преобразует текст публикации Food Radar в объект Recipe."""
     return Recipe(
-        title=extract_title(text),
-        difficulty=extract_difficulty(text),
-        category=extract_category(text),
-        source_url=source_url,
-        image_url=image_url,
-        message_id=message_id,
-        published=True,
-    )
+    title=extract_title(text),
+    difficulty=extract_difficulty(text),
+    category=extract_category(text),
+    source_url=source_url,
+    image_url=image_url,
+    content=text,
+    message_id=message_id,
+    published=True,
+)
