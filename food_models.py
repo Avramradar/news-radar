@@ -10,6 +10,7 @@ class Recipe:
     category: str
     source_url: str
     image_url: str
+    content: str
     message_id: int | None = None
     published: bool = False
 
