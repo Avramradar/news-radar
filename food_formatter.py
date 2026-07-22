@@ -9,14 +9,14 @@ STARS = {
 
 
 def format_recipe(recipe: Recipe) -> str:
-    """Формирует красивый текст рецепта для публикации."""
+    """Формирует полный красивый пост рецепта."""
 
     stars = STARS.get(recipe.difficulty, "⭐")
 
     return (
         f"🍽 {recipe.title}\n\n"
-        f"{stars}\n"
+        f"⭐ Сложность: {stars}\n"
         f"📂 Категория: {recipe.category}\n\n"
-        f"🔗 Полный рецепт:\n"
-        f"{recipe.source_url}"
+        f"{recipe.content}\n\n"
+        f"🔗 Источник:\n{recipe.source_url}"
     )
