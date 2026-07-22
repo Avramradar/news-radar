@@ -72,7 +72,7 @@ def find_message_ids(value: Any) -> list[int]:
 def copy_message(message_id: int) -> int:
     url = (
         f"https://api.telegram.org/"
-        f"bot{BOT_TOKEN}/copyMessage"
+        f"bot{BOT_TOKEN}/forwardMessage"
     )
 
     response = requests.post(
