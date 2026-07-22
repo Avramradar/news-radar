@@ -242,10 +242,15 @@ def format_recipe(recipe: Recipe) -> str:
         header_lines.extend(metadata)
 
     post_parts = [
-        "\n".join(header_lines),
-        content,
-        f"🔗 Источник:\n{recipe.source_url}",
-    ]
+    "\n".join(header_lines),
+    content,
+    f"🔗 Источник:\n{recipe.source_url}",
+    (
+        "━━━━━━━━━━━━━━\n"
+        "🍽 Больше рецептов в Food Radar:\n"
+        "https://t.me/FoodRadarDaily"
+    ),
+]
 
     return "\n\n".join(
         part.strip()
