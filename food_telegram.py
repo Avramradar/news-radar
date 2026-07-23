@@ -7,6 +7,7 @@ import requests
 
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+
 FOOD_CHANNEL = os.getenv(
     "FOOD_CHANNEL",
     "@FoodRadarDaily",
@@ -118,9 +119,6 @@ def send_text_message(
     """
     Отправляет одно текстовое сообщение
     в канал Food Radar.
-
-    При show_fridge_button=True добавляет
-    кнопку перехода в RadarFridge.
     """
     data = {
         "chat_id": FOOD_CHANNEL,
@@ -159,6 +157,58 @@ def send_text_message(
     )
 
 
+def send_photo_message(
+    image_url: str,
+    caption: str,
+) -> int | None:
+    """
+    Отправляет фотографию рецепта
+    вместе с кнопкой RadarFridge.
+
+    При ошибке возвращает None,
+    чтобы рецепт можно было отправить текстом.
+    """
+    response = requests.post(
+        (
+            f"https://api.telegram.org/"
+            f"bot{BOT_TOKEN}/sendPhoto"
+        ),
+        data={
+            "chat_id": FOOD_CHANNEL,
+            "photo": image_url,
+            "caption": caption,
+            "reply_markup": build_fridge_keyboard(),
+        },
+        timeout=30,
+    )
+
+    print(
+        "Telegram photo response:",
+        response.text,
+    )
+
+    if not response.ok:
+        print(
+            "Photo failed, recipe will "
+            "be sent as text:",
+            response.text,
+        )
+        return None
+
+    result = response.json()
+
+    if not result.get("ok"):
+        print(
+            "Telegram rejected photo:",
+            result,
+        )
+        return None
+
+    return int(
+        result["result"]["message_id"]
+    )
+
+
 def send_food_message(
     text: str,
     image_url: str = "",
@@ -166,11 +216,11 @@ def send_food_message(
     """
     Публикует фотографию и полный текст рецепта.
 
-    Длинный рецепт автоматически разделяется
-    на несколько сообщений без обрезания.
+    Если фотография успешно отправлена,
+    кнопка RadarFridge появляется под фотографией.
 
-    Под последней частью рецепта добавляется
-    кнопка перехода в RadarFridge.
+    Если фотографии нет или отправка не удалась,
+    кнопка появляется под последней частью текста.
     """
     text = (text or "").strip()
     image_url = (image_url or "").strip()
@@ -181,6 +231,7 @@ def send_food_message(
         )
 
     first_message_id: int | None = None
+    photo_was_sent = False
 
     if image_url:
         first_line = text.splitlines()[0].strip()
@@ -189,37 +240,14 @@ def send_food_message(
             :PHOTO_CAPTION_LIMIT
         ]
 
-        response = requests.post(
-            (
-                f"https://api.telegram.org/"
-                f"bot{BOT_TOKEN}/sendPhoto"
-            ),
-            data={
-                "chat_id": FOOD_CHANNEL,
-                "photo": image_url,
-                "caption": photo_caption,
-            },
-            timeout=30,
+        photo_message_id = send_photo_message(
+            image_url=image_url,
+            caption=photo_caption,
         )
 
-        print(
-            "Telegram photo response:",
-            response.text,
-        )
-
-        if response.ok:
-            result = response.json()
-
-            if result.get("ok"):
-                first_message_id = int(
-                    result["result"]["message_id"]
-                )
-        else:
-            print(
-                "Photo failed, recipe will "
-                "be sent as text:",
-                response.text,
-            )
+        if photo_message_id is not None:
+            first_message_id = photo_message_id
+            photo_was_sent = True
 
     parts = split_text(text)
 
@@ -242,9 +270,17 @@ def send_food_message(
 
         is_last_part = number == total_parts
 
+        # Если фото успешно опубликовано,
+        # кнопка уже находится под ним.
+        # Иначе ставим кнопку под последним текстом.
+        show_button = (
+            is_last_part
+            and not photo_was_sent
+        )
+
         message_id = send_text_message(
             text=part,
-            show_fridge_button=is_last_part,
+            show_fridge_button=show_button,
         )
 
         if first_message_id is None:
