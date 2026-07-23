@@ -16,25 +16,26 @@ class RssFoodSource(BaseSource):
     """
     Получает публикации из кулинарных RSS-лент.
 
-    RSS используется для обнаружения новых рецептов.
-    После получения ссылки выполняется попытка загрузить
-    полный текст рецепта со страницы сайта.
-
-    Если полную страницу получить не удалось,
-    используется заголовок и краткое описание из RSS.
+    Файл food_sources.txt может содержать разные типы источников.
+    Этот класс обрабатывает только RSS-адреса и игнорирует
+    Telegram, YouTube и обычные сайты.
     """
 
     SOURCE_FILE = Path("food_sources.txt")
     ENTRIES_PER_FEED = 2
 
+    IGNORED_PREFIXES = (
+        "telegram:",
+        "youtube:",
+        "site:",
+        "tgstat:",
+    )
+
     def fetch(self) -> list[FoodPost]:
-        """
-        Читает адреса RSS-лент, получает свежие записи
-        и возвращает их в виде списка FoodPost.
-        """
         feed_urls = self._load_feed_urls()
 
         if not feed_urls:
+            print("RSS-источники не найдены.")
             return []
 
         posts: list[FoodPost] = []
@@ -70,35 +71,79 @@ class RssFoodSource(BaseSource):
 
     def _load_feed_urls(self) -> list[str]:
         """
-        Загружает список RSS-адресов из food_sources.txt.
+        Читает food_sources.txt и возвращает только RSS-адреса.
 
-        Пустые строки и комментарии, начинающиеся с #,
-        игнорируются.
+        Поддерживаются два формата:
+
+        rss:https://example.com/feed.xml
+        https://example.com/feed.xml
+
+        Строки telegram:, youtube:, site: и tgstat:
+        автоматически игнорируются.
         """
         if not self.SOURCE_FILE.exists():
             print("Файл food_sources.txt не найден.")
             return []
 
-        urls_text = self.SOURCE_FILE.read_text(
+        source_text = self.SOURCE_FILE.read_text(
             encoding="utf-8"
         ).strip()
 
-        if not urls_text:
+        if not source_text:
             print("Файл food_sources.txt пуст.")
             return []
 
-        feed_urls = [
-            line.strip()
-            for line in urls_text.splitlines()
-            if line.strip()
-            and not line.strip().startswith("#")
-        ]
+        feed_urls: list[str] = []
+        skipped_sources = 0
 
-        if not feed_urls:
+        for raw_line in source_text.splitlines():
+            line = raw_line.strip()
+
+            if not line:
+                continue
+
+            if line.startswith("#"):
+                continue
+
+            lowered = line.lower()
+
+            if lowered.startswith(self.IGNORED_PREFIXES):
+                skipped_sources += 1
+                continue
+
+            if lowered.startswith("rss:"):
+                url = line[4:].strip()
+
+                if url.startswith(("https://", "http://")):
+                    feed_urls.append(url)
+                else:
+                    print(
+                        "Некорректный RSS-адрес пропущен: "
+                        f"{line}"
+                    )
+
+                continue
+
+            # Обратная совместимость со старым food_sources.txt:
+            # обычные HTTP-ссылки считаются RSS-адресами.
+            if line.startswith(("https://", "http://")):
+                feed_urls.append(line)
+                continue
+
+            skipped_sources += 1
             print(
-                "В файле food_sources.txt "
-                "нет доступных RSS-адресов."
+                "Неизвестный источник пропущен RSS-модулем: "
+                f"{line}"
             )
+
+        # Удаляем дубли, сохраняя исходный порядок.
+        feed_urls = list(dict.fromkeys(feed_urls))
+
+        print(
+            "Загружено RSS-источников: "
+            f"{len(feed_urls)}; "
+            f"других источников пропущено: {skipped_sources}"
+        )
 
         return feed_urls
 
@@ -107,8 +152,7 @@ class RssFoodSource(BaseSource):
         """
         Загружает одну RSS-ленту.
 
-        Ошибка одной ленты не останавливает
-        обработку остальных источников.
+        Ошибка одной ленты не останавливает весь запуск.
         """
         try:
             print(f"Проверка RSS: {feed_url}")
@@ -137,10 +181,11 @@ class RssFoodSource(BaseSource):
         loader: RecipeLoader,
     ) -> FoodPost | None:
         """
-        Создаёт FoodPost из одной записи RSS.
+        Создаёт FoodPost из одной RSS-записи.
 
-        Сначала пытается получить полный рецепт
-        по ссылке. При ошибке использует RSS-анонс.
+        Сначала пытается загрузить полный рецепт.
+        Если парсер сайта не поддерживается или произошла
+        ошибка, используется описание из RSS.
         """
         title = str(
             entry.get("title", "")
@@ -206,20 +251,19 @@ class RssFoodSource(BaseSource):
         loader: RecipeLoader,
         source_url: str,
     ) -> str:
-        """
-        Пытается загрузить полный текст рецепта.
-
-        Любая ошибка обрабатывается локально,
-        чтобы одна страница не остановила весь запуск.
-        """
         try:
-            return loader.load(source_url).strip()
+            full_text = loader.load(source_url)
+
+            if not full_text:
+                return ""
+
+            return full_text.strip()
+
         except Exception as error:
             print(
                 "Не удалось загрузить полную страницу "
                 f"{source_url}: {error}"
             )
-
             return ""
 
     @staticmethod
@@ -228,8 +272,8 @@ class RssFoodSource(BaseSource):
         body: str,
     ) -> str:
         """
-        Объединяет заголовок и содержимое,
-        не дублируя заголовок страницы.
+        Соединяет заголовок и основной текст,
+        избегая явного дублирования заголовка.
         """
         clean_title = title.strip()
         clean_body = body.strip()
@@ -246,7 +290,7 @@ class RssFoodSource(BaseSource):
         normalized_body_start = re.sub(
             r"\s+",
             " ",
-            clean_body[: len(clean_title) + 30],
+            clean_body[: len(clean_title) + 50],
         ).casefold()
 
         if (
@@ -261,10 +305,6 @@ class RssFoodSource(BaseSource):
 
     @staticmethod
     def _clean_html(value: str) -> str:
-        """
-        Удаляет HTML-разметку из RSS-анонса
-        и нормализует пробелы.
-        """
         clean = re.sub(
             r"<[^>]+>",
             " ",
@@ -283,10 +323,6 @@ class RssFoodSource(BaseSource):
 
     @staticmethod
     def _make_message_id(source_url: str) -> int:
-        """
-        Создаёт стабильный числовой идентификатор
-        на основе ссылки на исходную публикацию.
-        """
         digest = hashlib.sha256(
             source_url.encode("utf-8")
         ).hexdigest()
@@ -295,15 +331,6 @@ class RssFoodSource(BaseSource):
 
     @staticmethod
     def _extract_image(entry) -> str:
-        """
-        Извлекает изображение из стандартных полей RSS.
-
-        Проверяются:
-        - media_content;
-        - media_thumbnail;
-        - enclosures;
-        - тег img внутри summary/description.
-        """
         media_content = entry.get(
             "media_content",
             [],
