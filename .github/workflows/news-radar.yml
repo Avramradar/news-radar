@@ -6,8 +6,12 @@ on:
     - cron: "3,18,33,48 * * * *"
 
     # Сводка в 08:05 и 20:05 по Москве
-    # GitHub использует UTC: 05:05 и 17:05 UTC
+    # 05:05 и 17:05 UTC
     - cron: "5 5,17 * * *"
+
+    # Food Radar в 09:00, 13:00, 17:00 и 21:00 по Москве
+    # 06:00, 10:00, 14:00 и 18:00 UTC
+    - cron: "0 6,10,14,18 * * *"
 
   workflow_dispatch:
     inputs:
@@ -32,7 +36,7 @@ jobs:
   publish-news:
     if: >
       github.event_name == 'workflow_dispatch' &&
-      (inputs.mode == 'news' || inputs.mode == 'food') ||
+      inputs.mode == 'news' ||
       github.event_name == 'schedule' &&
       github.event.schedule == '3,18,33,48 * * * *'
 
@@ -55,10 +59,6 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Опубликовать обычную новость
-        if: >
-          github.event_name == 'schedule' ||
-          github.event_name == 'workflow_dispatch' &&
-          inputs.mode == 'news'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL: "@newsRadar2026"
@@ -66,10 +66,50 @@ jobs:
           MODE: "news"
         run: python app.py
 
+      - name: Сохранить posted.json
+        run: |
+          git config user.name "news-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          if [ -f posted.json ]; then
+            git add posted.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Новых изменений нет"
+            exit 0
+          fi
+
+          git commit -m "Update published news"
+          git pull --rebase origin main
+          git push origin main
+
+  publish-food:
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.mode == 'food' ||
+      github.event_name == 'schedule' &&
+      github.event.schedule == '0 6,10,14,18 * * *'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Получить файлы
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить зависимости
+        run: pip install -r requirements.txt
+
       - name: Опубликовать рецепт Food Radar
-        if: >
-          github.event_name == 'workflow_dispatch' &&
-          inputs.mode == 'food'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
 
@@ -83,14 +123,10 @@ jobs:
           FOOD_IMAGE_URL: ${{ vars.FOOD_IMAGE_URL }}
         run: python food_runner.py
 
-      - name: Сохранить состояние публикаций
+      - name: Сохранить состояние Food Radar
         run: |
           git config user.name "news-radar-bot"
           git config user.email "actions@users.noreply.github.com"
-
-          if [ -f posted.json ]; then
-            git add posted.json
-          fi
 
           if [ -f food_state.json ]; then
             git add food_state.json
@@ -105,7 +141,7 @@ jobs:
             exit 0
           fi
 
-          git commit -m "Update published news"
+          git commit -m "Update published food"
           git pull --rebase origin main
           git push origin main
 
