@@ -74,13 +74,13 @@ def find_message_ids(
 ) -> list[int]:
     """
     Ищет Telegram message_id внутри food_state.json
-    независимо от точной структуры файла.
+    независимо от структуры файла.
     """
     message_ids: list[int] = []
 
     if isinstance(value, dict):
         for key, item in value.items():
-            normalized_key = key.lower()
+            normalized_key = str(key).lower()
 
             if normalized_key in {
                 "message_id",
@@ -110,9 +110,16 @@ def find_message_ids(
     return message_ids
 
 
-def forward_message(
+def copy_message(
     message_id: int,
 ) -> int:
+    """
+    Пересылает сообщение из Food Radar
+    в News Radar.
+
+    Возвращает message_id нового сообщения
+    в канале News Radar.
+    """
     url = (
         "https://api.telegram.org/"
         f"bot{BOT_TOKEN}/forwardMessage"
@@ -129,7 +136,7 @@ def forward_message(
     )
 
     print(
-        "Telegram response:",
+        "Telegram forward response:",
         response.text,
     )
 
@@ -149,6 +156,13 @@ def forward_message(
 
 
 def main() -> None:
+    """
+    Резервный ручной запуск.
+
+    Находит последний опубликованный рецепт
+    в food_state.json и пересылает его в News Radar,
+    если он ещё не пересылался этим скриптом.
+    """
     food_state = load_json(
         FOOD_STATE_FILE,
         {},
@@ -161,7 +175,7 @@ def main() -> None:
     if not message_ids:
         print(
             "В food_state.json не найден "
-            "message_id рецепта."
+            "Telegram message_id рецепта."
         )
         return
 
@@ -176,28 +190,34 @@ def main() -> None:
         },
     )
 
-    copied_ids = {
-        int(message_id)
-        for message_id in repost_state.get(
-            "copied_message_ids",
-            [],
-        )
-    }
+    copied_ids: set[int] = set()
+
+    for value in repost_state.get(
+        "copied_message_ids",
+        [],
+    ):
+        try:
+            copied_ids.add(int(value))
+        except (
+            TypeError,
+            ValueError,
+        ):
+            continue
 
     if latest_food_message_id in copied_ids:
         print(
-            "Этот рецепт уже был отправлен "
+            "Этот рецепт уже был переслан "
             "в News Radar:",
             latest_food_message_id,
         )
         return
 
     print(
-        "Отправляем рецепт в News Radar:",
+        "Пересылаем рецепт в News Radar:",
         latest_food_message_id,
     )
 
-    news_message_id = forward_message(
+    news_message_id = copy_message(
         latest_food_message_id
     )
 
@@ -221,12 +241,12 @@ def main() -> None:
     )
 
     print(
-        "Рецепт отправлен из Food Radar "
+        "Рецепт переслан из Food Radar "
         "в News Radar.",
-        "Food message_id:",
-        latest_food_message_id,
-        "News message_id:",
-        news_message_id,
+        f"Food message_id: "
+        f"{latest_food_message_id}.",
+        f"News message_id: "
+        f"{news_message_id}.",
     )
 
 
