@@ -262,25 +262,28 @@ def parse_vpuzo(html: str) -> str:
         "lxml",
     )
 
-    for text_node in soup.find_all(
-        string=re.compile(
-            r"ингредиент|приготовление",
-            re.IGNORECASE,
-        )
-    ):
-        parent = text_node.parent
+    title = soup.find("h1")
 
+    if title:
         print(
-            "VPUZO TARGET:",
-            f"tag={parent.name}",
-            f"class={parent.get('class')}",
-            f"id={parent.get('id')}",
-            clean_text(
-                parent.parent.get_text("\n")
-                if parent.parent
-                else parent.get_text("\n")
-            )[:1000],
+            "TITLE:",
+            clean_text(title.get_text()),
         )
+
+        parent = title
+
+        for _ in range(6):
+            parent = parent.parent
+
+            if parent is None:
+                break
+
+            print("=" * 60)
+            print(
+                clean_text(
+                    parent.get_text("\n")
+                )[:3000]
+            )
 
     return ""
 
