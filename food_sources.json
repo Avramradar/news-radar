@@ -1,1 +1,21 @@
+{
+  "telegram": [
+    "@foodrumedia",
+    "@eda_ru",
+    "@1000menu"
+  ],
 
+  "youtube": [
+    "@FoodWishes",
+    "@JoshuaWeissman",
+    "@NatashasKitchen"
+  ],
+
+  "websites": [
+    "https://eda.ru",
+    "https://1000.menu",
+    "https://povar.ru"
+  ],
+
+  "rss": []
+}
