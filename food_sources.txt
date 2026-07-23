@@ -10,8 +10,12 @@ telegram:@topretsept
 telegram:@edimdoma
 telegram:@culinary_abuse
 
-youtube:@tikhonvt
-youtube:@oblomoff
+youtube:@grillkov
+youtube:@borsch378
+youtube:@zonalazersonov
+youtube:@chefemel
+youtube:@oblomoffood
+youtube:@oblomoffstuff
 youtube:@vanzai
 youtube:@gotovim_doma
 youtube:@simplefoodrecipes
