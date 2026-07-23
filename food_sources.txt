@@ -9,3 +9,9 @@ telegram:@recipe_zuma
 telegram:@topretsept
 telegram:@edimdoma
 telegram:@culinary_abuse
+
+youtube:@tikhonvt
+youtube:@oblomoff
+youtube:@vanzai
+youtube:@gotovim_doma
+youtube:@simplefoodrecipes
