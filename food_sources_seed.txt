@@ -1,0 +1,34 @@
+# Telegram
+tgstat:food
+telegram:recipes
+telegram:кулинария
+telegram:пп рецепты
+telegram:выпечка
+telegram:десерты
+telegram:домашняя кухня
+
+# YouTube
+youtube:рецепты
+youtube:домашняя кухня
+youtube:простые рецепты
+youtube:выпечка
+youtube:десерты
+youtube:салаты
+youtube:мясо
+youtube:рыба
+youtube:ужин
+youtube:завтрак
+youtube:обед
+youtube:пп рецепты
+
+# Сайты
+site:povarenok.ru
+site:1000.menu
+site:russianfood.com
+site:gastronom.ru
+site:iamcook.ru
+site:menunedeli.ru
+site:eda.ru
+site:webspoon.ru
+site:vkusvill.ru/recipes
+site:koolinar.ru
