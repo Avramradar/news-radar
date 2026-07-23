@@ -254,6 +254,12 @@ def parse_say7(html: str) -> str:
     """
     return parse_json_ld_recipe(html)
 
+def parse_vpuzo(html: str) -> str:
+    """
+    Извлекает рецепт с vpuzo.com.
+    """
+    return parse_json_ld_recipe(html)
+
 
 def parse_povar(html: str) -> str:
     """
