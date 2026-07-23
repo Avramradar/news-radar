@@ -31,8 +31,10 @@ concurrency:
 jobs:
   publish-news:
     if: >
-      github.event_name == 'workflow_dispatch' && (inputs.mode == 'news' || inputs.mode == 'food') ||
-      github.event_name == 'schedule' && github.event.schedule == '3,18,33,48 * * * *'
+      github.event_name == 'workflow_dispatch' &&
+      (inputs.mode == 'news' || inputs.mode == 'food') ||
+      github.event_name == 'schedule' &&
+      github.event.schedule == '3,18,33,48 * * * *'
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -53,6 +55,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Опубликовать обычную новость
+        if: >
+          github.event_name == 'schedule' ||
+          github.event_name == 'workflow_dispatch' &&
+          inputs.mode == 'news'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL: "@newsRadar2026"
@@ -61,9 +67,15 @@ jobs:
         run: python app.py
 
       - name: Опубликовать рецепт Food Radar
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'food'
+        if: >
+          github.event_name == 'workflow_dispatch' &&
+          inputs.mode == 'food'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+          FOOD_CHANNEL: "@FoodRadarDaily"
+          NEWS_CHANNEL: "@newsRadar2026"
+
           FOOD_TEXT: ${{ vars.FOOD_TEXT }}
           FOOD_SOURCE_URL: ${{ vars.FOOD_SOURCE_URL }}
           FOOD_MESSAGE_ID: ${{ vars.FOOD_MESSAGE_ID }}
@@ -71,22 +83,18 @@ jobs:
           FOOD_IMAGE_URL: ${{ vars.FOOD_IMAGE_URL }}
         run: python food_runner.py
 
-      - name: Отправить последний рецепт в News Radar
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'food'
-        env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          FOOD_CHANNEL: "@FoodRadarDaily"
-          NEWS_CHANNEL: "@newsRadar2026"
-          FOOD_STATE_FILE: "food_state.json"
-          REPOST_STATE_FILE: "food_to_news_state.json"
-        run: python food_to_news.py
-
       - name: Сохранить состояние публикаций
         run: |
           git config user.name "news-radar-bot"
           git config user.email "actions@users.noreply.github.com"
 
-          git add posted.json food_state.json
+          if [ -f posted.json ]; then
+            git add posted.json
+          fi
+
+          if [ -f food_state.json ]; then
+            git add food_state.json
+          fi
 
           if [ -f food_to_news_state.json ]; then
             git add food_to_news_state.json
@@ -103,8 +111,10 @@ jobs:
 
   publish-digest:
     if: >
-      github.event_name == 'workflow_dispatch' && inputs.mode == 'digest' ||
-      github.event_name == 'schedule' && github.event.schedule == '5 5,17 * * *'
+      github.event_name == 'workflow_dispatch' &&
+      inputs.mode == 'digest' ||
+      github.event_name == 'schedule' &&
+      github.event.schedule == '5 5,17 * * *'
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
