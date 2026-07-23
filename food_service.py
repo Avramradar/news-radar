@@ -544,6 +544,12 @@ def publish_recipe(post: FoodPost) -> str:
     Проверяет, обрабатывает и публикует рецепт.
     """
     source_text = normalize_source_text(post.text)
+    print(
+    "\n===== RECIPE DEBUG START =====\n"
+    f"message_id={post.message_id}\n"
+    f"{source_text[:2500]}\n"
+    "===== RECIPE DEBUG END =====\n"
+)
 
     if not is_recipe_complete(source_text):
         reason = get_recipe_validation_reason(source_text)
