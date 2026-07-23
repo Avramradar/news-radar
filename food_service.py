@@ -7,16 +7,8 @@ from food_telegram import send_food_message
 from sources.food_source import FoodPost
 
 
-# Минимальная длина текста рецепта.
-# Уменьшено с 350, потому что некоторые полноценные рецепты
-# приходят в компактном формате.
 MIN_RECIPE_LENGTH = 180
-
-# Минимальное количество содержательных строк.
-# Допускаем рецепты, записанные в несколько длинных абзацев.
 MIN_RECIPE_LINES = 2
-
-# Минимальное количество кулинарных признаков.
 MIN_FOOD_MARKERS = 1
 
 
@@ -24,7 +16,8 @@ FOOD_MARKERS = (
     "ингредиент",
     "состав",
     "продукт",
-    "понадобится",
+    "понадоб",
+    "потребуется",
     "приготов",
     "рецепт",
     "добав",
@@ -32,18 +25,18 @@ FOOD_MARKERS = (
     "измельч",
     "смеш",
     "перемеш",
-    "варить",
-    "варим",
+    "взб",
+    "вар",
     "отвар",
     "обжар",
-    "жарить",
-    "жарим",
+    "жар",
     "выпек",
     "запек",
-    "тушить",
-    "тушим",
+    "туш",
     "маринов",
     "тесто",
+    "начинк",
+    "соус",
     "масло",
     "мука",
     "соль",
@@ -54,20 +47,36 @@ FOOD_MARKERS = (
     "кастрюл",
     "минут",
     "грамм",
-    "мл",
+    "стакан",
+    "ложк",
 )
 
 
 INGREDIENT_SECTION_MARKERS = (
     "ингредиенты",
     "ингредиент",
-    "состав:",
+    "состав",
     "состав блюда",
-    "продукты:",
+    "продукты",
+    "список продуктов",
     "необходимые продукты",
+    "необходимые ингредиенты",
     "нам понадобится",
+    "нам потребуется",
     "вам понадобится",
-    "понадобится:",
+    "вам потребуется",
+    "понадобится",
+    "потребуется",
+    "что понадобится",
+    "что потребуется",
+    "для рецепта",
+    "для приготовления",
+    "для теста",
+    "для начинки",
+    "для крема",
+    "для соуса",
+    "для маринада",
+    "для украшения",
 )
 
 
@@ -75,16 +84,75 @@ COOKING_SECTION_MARKERS = (
     "приготовление",
     "как приготовить",
     "способ приготовления",
+    "процесс приготовления",
     "пошаговый рецепт",
+    "пошаговое приготовление",
     "инструкция",
     "готовим",
+    "начинаем готовить",
+    "ход приготовления",
+    "этапы приготовления",
+)
+
+
+COOKING_ACTIONS = (
+    "добав",
+    "нареж",
+    "пореж",
+    "измельч",
+    "натр",
+    "смеш",
+    "перемеш",
+    "взб",
+    "влей",
+    "налей",
+    "залей",
+    "всып",
+    "полож",
+    "вылож",
+    "вар",
+    "отвар",
+    "обжар",
+    "жар",
+    "выпек",
+    "запек",
+    "туш",
+    "маринов",
+    "разогрей",
+    "охлад",
+    "остав",
+    "посып",
+    "смаж",
+    "очист",
+    "промой",
+)
+
+
+UNITS_PATTERN = (
+    r"(?:"
+    r"г|гр|грамм(?:а|ов)?|"
+    r"кг|килограмм(?:а|ов)?|"
+    r"мл|миллилитр(?:а|ов)?|"
+    r"л|литр(?:а|ов)?|"
+    r"шт|штук(?:а|и)?|"
+    r"ст\.?\s*л\.?|столов\w*\s+лож\w*|"
+    r"ч\.?\s*л\.?|чай\w*\s+лож\w*|"
+    r"стакан(?:а|ов)?|"
+    r"чашк(?:а|и|ек)|"
+    r"щепотк(?:а|и)?|"
+    r"зубчик(?:а|ов)?|"
+    r"веточк(?:а|и|ек)|"
+    r"пучок|пучка|пучков|"
+    r"банка|банки|банок|"
+    r"упаковк(?:а|и|ок)|"
+    r"кусоч(?:ек|ка|ков)"
+    r")"
 )
 
 
 def normalize_source_text(text: str) -> str:
     """
-    Очищает исходный текст перед проверкой и публикацией.
-
+    Очищает исходный текст перед проверкой.
     Полезное содержимое рецепта не обрезается.
     """
     if not text:
@@ -92,10 +160,25 @@ def normalize_source_text(text: str) -> str:
 
     text = text.strip()
 
-    # Удаляем невидимые символы.
     text = text.replace("\u200b", "")
     text = text.replace("\ufeff", "")
     text = text.replace("\xa0", " ")
+    text = text.replace("\r\n", "\n")
+    text = text.replace("\r", "\n")
+
+    # Превращаем распространённые HTML-переносы в обычные.
+    text = re.sub(
+        r"(?i)<br\s*/?>",
+        "\n",
+        text,
+    )
+
+    # Удаляем оставшиеся HTML-теги.
+    text = re.sub(
+        r"<[^>]+>",
+        " ",
+        text,
+    )
 
     # Удаляем технические теги сложности.
     text = re.sub(
@@ -106,7 +189,6 @@ def normalize_source_text(text: str) -> str:
     )
 
     # Убираем отдельную ссылку в конце текста.
-    # Ссылка на источник добавляется форматтером.
     text = re.sub(
         r"\n\s*https?://\S+\s*$",
         "",
@@ -114,14 +196,21 @@ def normalize_source_text(text: str) -> str:
         flags=re.IGNORECASE,
     )
 
-    # Убираем лишние пробелы перед переносами строк.
+    # Убираем лишние пробелы перед переносами.
     text = re.sub(
         r"[ \t]+\n",
         "\n",
         text,
     )
 
-    # Убираем слишком большое количество пустых строк.
+    # Схлопываем повторяющиеся пробелы внутри строк.
+    text = re.sub(
+        r"[ \t]{2,}",
+        " ",
+        text,
+    )
+
+    # Ограничиваем количество пустых строк.
     text = re.sub(
         r"\n{3,}",
         "\n\n",
@@ -133,7 +222,7 @@ def normalize_source_text(text: str) -> str:
 
 def count_meaningful_lines(text: str) -> int:
     """
-    Считает строки, в которых есть полезное содержимое.
+    Считает строки с полезным содержимым.
     """
     return len(
         [
@@ -146,9 +235,7 @@ def count_meaningful_lines(text: str) -> int:
 
 def count_food_markers(text: str) -> int:
     """
-    Считает количество кулинарных признаков.
-
-    Один признак учитывается только один раз.
+    Считает уникальные кулинарные признаки.
     """
     lowered = text.lower()
 
@@ -161,8 +248,8 @@ def count_food_markers(text: str) -> int:
 
 def has_ingredients_section(text: str) -> bool:
     """
-    Проверяет, есть ли в публикации явный раздел
-    с ингредиентами или составом.
+    Ищет явный заголовок или обозначение ингредиентов.
+    Поддерживает эмодзи и разные знаки после заголовка.
     """
     lowered = text.lower()
 
@@ -174,7 +261,7 @@ def has_ingredients_section(text: str) -> bool:
 
 def has_cooking_section(text: str) -> bool:
     """
-    Проверяет, есть ли в публикации описание приготовления.
+    Проверяет наличие описания приготовления.
     """
     lowered = text.lower()
 
@@ -184,88 +271,198 @@ def has_cooking_section(text: str) -> bool:
     ):
         return True
 
-    # Ищем хотя бы два пронумерованных шага.
+    # Пронумерованные шаги:
+    # 1. Нарежьте...
+    # 2) Добавьте...
     numbered_steps = re.findall(
-        r"(?m)^\s*\d+[\.\)]\s+\S+",
+        r"(?m)^\s*(?:шаг\s*)?\d+\s*[\.\):\-]\s+\S+",
         text,
+        flags=re.IGNORECASE,
     )
 
     if len(numbered_steps) >= 2:
         return True
 
-    # Допускаем текст с несколькими глаголами приготовления,
-    # даже если отдельного заголовка нет.
-    cooking_actions = (
-        "добав",
-        "нареж",
-        "измельч",
-        "смеш",
-        "перемеш",
-        "вар",
-        "обжар",
-        "жар",
-        "выпек",
-        "запек",
-        "туш",
-    )
-
     action_count = sum(
         1
-        for action in cooking_actions
+        for action in COOKING_ACTIONS
         if action in lowered
     )
 
     return action_count >= 2
 
 
-def count_ingredient_lines(text: str) -> int:
+def is_likely_ingredient_line(line: str) -> bool:
     """
-    Считает строки, похожие на элементы списка ингредиентов.
-
-    Поддерживает форматы:
-    - Картофель — 500 г
-    - Картофель: 500 г
-    - 500 г картофеля
+    Определяет, похожа ли отдельная строка на ингредиент.
     """
-    ingredient_patterns = (
-        # Картофель — 500 г
-        r"(?im)^\s*[•\-–—]?\s*"
-        r".{2,60}?\s*[—\-:]\s*"
-        r"\d+(?:[.,]\d+)?\s*"
-        r"(?:г|гр|кг|мл|л|шт|ст\.?\s*л|ч\.?\s*л)\b",
+    clean_line = line.strip()
 
-        # 500 г картофеля
-        r"(?im)^\s*[•\-–—]?\s*"
-        r"\d+(?:[.,]\d+)?\s*"
-        r"(?:г|гр|кг|мл|л|шт|ст\.?\s*л|ч\.?\s*л)\b"
-        r".{2,60}$",
+    if not clean_line:
+        return False
+
+    # Убираем маркеры списков и эмодзи в начале.
+    clean_line = re.sub(
+        r"^[\s•●▪▫◦·*✅☑️✔️🔸🔹🥄🍴📌➖\-–—]+",
+        "",
+        clean_line,
+    ).strip()
+
+    if len(clean_line) < 3 or len(clean_line) > 160:
+        return False
+
+    lowered = clean_line.lower()
+
+    # Исключаем явные инструкции приготовления.
+    action_matches = sum(
+        1
+        for action in COOKING_ACTIONS
+        if action in lowered
     )
 
+    if action_matches >= 2:
+        return False
+
+    number_pattern = (
+        r"(?:"
+        r"\d+(?:[.,]\d+)?|"
+        r"\d+\s*/\s*\d+|"
+        r"[¼½¾⅓⅔⅛]"
+        r")"
+    )
+
+    # Картофель — 500 г
+    # Мука: 2 стакана
+    if re.search(
+        rf"{number_pattern}\s*{UNITS_PATTERN}\b",
+        lowered,
+        flags=re.IGNORECASE,
+    ):
+        return True
+
+    # 2 яйца
+    # 3 помидора
+    if re.search(
+        r"^\s*\d+(?:[.,]\d+)?\s+"
+        r"[а-яёa-z][а-яёa-z\-]{2,}",
+        lowered,
+        flags=re.IGNORECASE,
+    ):
+        return True
+
+    # Мука 300 г
+    # Сахар 2 ст. л.
+    if re.search(
+        rf"[а-яёa-z][а-яёa-z\- ]{{2,}}\s+"
+        rf"{number_pattern}\s*{UNITS_PATTERN}\b",
+        lowered,
+        flags=re.IGNORECASE,
+    ):
+        return True
+
+    # Соль по вкусу
+    # Перец по вкусу
+    if re.search(
+        r"\b(?:соль|перец|специи|зелень|сахар)"
+        r"\s+(?:по вкусу|по желанию)\b",
+        lowered,
+    ):
+        return True
+
+    # Масло для жарки
+    # Зелень для подачи
+    if re.search(
+        r"\b(?:масло|зелень|соус|сметана)"
+        r"\s+для\s+(?:жарки|подачи|смазывания)\b",
+        lowered,
+    ):
+        return True
+
+    return False
+
+
+def count_compact_ingredients(text: str) -> int:
+    """
+    Распознаёт компактные списки после заголовка:
+
+    Ингредиенты: мука 200 г, яйца 2 шт.,
+    сахар 100 г, масло 50 г.
+    """
+    lowered = text.lower()
+
+    marker_position = -1
+    marker_length = 0
+
+    for marker in INGREDIENT_SECTION_MARKERS:
+        position = lowered.find(marker)
+
+        if position != -1:
+            marker_position = position
+            marker_length = len(marker)
+            break
+
+    if marker_position == -1:
+        return 0
+
+    fragment = text[
+        marker_position + marker_length:
+        marker_position + marker_length + 1000
+    ]
+
+    # Не захватываем раздел приготовления.
+    fragment_lowered = fragment.lower()
+
+    stop_positions = [
+        fragment_lowered.find(marker)
+        for marker in COOKING_SECTION_MARKERS
+        if fragment_lowered.find(marker) != -1
+    ]
+
+    if stop_positions:
+        fragment = fragment[:min(stop_positions)]
+
+    parts = re.split(
+        r"[,;\n•●▪▫◦]+",
+        fragment,
+    )
+
+    return sum(
+        1
+        for part in parts
+        if is_likely_ingredient_line(part)
+    )
+
+
+def count_ingredient_lines(text: str) -> int:
+    """
+    Считает ингредиенты в построчных и компактных списках.
+    """
     matched_lines: set[str] = set()
 
-    for pattern in ingredient_patterns:
-        for match in re.findall(pattern, text):
-            if isinstance(match, tuple):
-                value = " ".join(match)
-            else:
-                value = match
+    for line in text.splitlines():
+        clean_line = line.strip().lower()
 
-            matched_lines.add(value.strip().lower())
+        if is_likely_ingredient_line(clean_line):
+            matched_lines.add(clean_line)
 
-    return len(matched_lines)
+    line_count = len(matched_lines)
+    compact_count = count_compact_ingredients(text)
+
+    return max(line_count, compact_count)
 
 
 def has_recipe_structure(text: str) -> bool:
     """
-    Проверяет наличие структуры полноценного рецепта.
-
-    Для публикации требуются:
-    1. ингредиенты;
-    2. описание приготовления.
+    Для публикации нужны ингредиенты и приготовление.
     """
+    ingredient_lines = count_ingredient_lines(text)
+
     ingredients_found = (
-        has_ingredients_section(text)
-        or count_ingredient_lines(text) >= 2
+        ingredient_lines >= 2
+        or (
+            has_ingredients_section(text)
+            and ingredient_lines >= 1
+        )
     )
 
     cooking_found = has_cooking_section(text)
@@ -275,11 +472,7 @@ def has_recipe_structure(text: str) -> bool:
 
 def is_recipe_complete(text: str) -> bool:
     """
-    Проверяет, достаточно ли рецепт наполнен
-    для публикации в Food Radar.
-
-    Главная цель — не публиковать короткие анонсы,
-    ссылки и посты без ингредиентов.
+    Проверяет полноту рецепта.
     """
     if not text:
         return False
@@ -303,8 +496,7 @@ def is_recipe_complete(text: str) -> bool:
 
 def get_recipe_validation_reason(text: str) -> str:
     """
-    Возвращает понятную причину,
-    по которой рецепт не прошёл проверку.
+    Возвращает точную причину отказа.
     """
     if not text:
         return "пустой текст"
@@ -333,11 +525,13 @@ def get_recipe_validation_reason(text: str) -> str:
             f"{food_markers} < {MIN_FOOD_MARKERS}"
         )
 
-    if not has_ingredients_section(clean_text):
-        ingredient_lines = count_ingredient_lines(clean_text)
+    ingredient_lines = count_ingredient_lines(clean_text)
 
-        if ingredient_lines < 2:
-            return "не найден раздел или список ингредиентов"
+    if ingredient_lines < 2:
+        return (
+            "не найден полноценный список ингредиентов: "
+            f"{ingredient_lines} < 2"
+        )
 
     if not has_cooking_section(clean_text):
         return "не найдено описание приготовления"
@@ -347,10 +541,7 @@ def get_recipe_validation_reason(text: str) -> str:
 
 def publish_recipe(post: FoodPost) -> str:
     """
-    Проверяет, обрабатывает и публикует один рецепт.
-
-    Неполные публикации пропускаются.
-    Дубликаты повторно не публикуются.
+    Проверяет, обрабатывает и публикует рецепт.
     """
     source_text = normalize_source_text(post.text)
 
@@ -369,6 +560,8 @@ def publish_recipe(post: FoodPost) -> str:
             f"lines={count_meaningful_lines(source_text)}, "
             f"markers={count_food_markers(source_text)}, "
             f"ingredient_lines={count_ingredient_lines(source_text)}, "
+            f"ingredients_section={has_ingredients_section(source_text)}, "
+            f"cooking_section={has_cooking_section(source_text)}, "
             f"reason={reason}"
         )
 
