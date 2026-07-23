@@ -185,7 +185,6 @@ def parse_json_ld_recipe(html: str) -> str:
         "script",
         type="application/ld+json",
     )
-    print("JSON-LD scripts:", len(scripts))
 
     for script in scripts:
         raw_json = script.string
@@ -257,33 +256,230 @@ def parse_say7(html: str) -> str:
     return parse_json_ld_recipe(html)
 
 def parse_vpuzo(html: str) -> str:
+    """
+    Извлекает полный рецепт с vpuzo.com.
+
+    Сайт использует Schema.org Microdata прямо в HTML:
+    - itemprop="recipeIngredient";
+    - itemprop="recipeInstructions".
+    """
     soup = BeautifulSoup(
         html,
         "lxml",
     )
 
-    title = soup.find("h1")
-
-    if not title:
-        return ""
-
-    print(
-        "TITLE:",
-        clean_text(title.get_text()),
+    recipe = soup.find(
+        attrs={
+            "itemtype": re.compile(
+                r"schema\.org/Recipe",
+                re.IGNORECASE,
+            )
+        }
     )
 
-    parent = title
+    if recipe is None:
+        recipe = soup.select_one(
+            "section.recipe.block"
+        )
 
-    for _ in range(2):
-        parent = parent.parent
+    if recipe is None:
+        return ""
 
-        if parent is None:
-            break
+    ingredients: list[str] = []
 
-        print("=" * 60)
-        print(parent.prettify()[:20000])
+    for node in recipe.find_all(
+        attrs={"itemprop": "recipeIngredient"}
+    ):
+        if node.name == "meta":
+            value = str(
+                node.get("content", "")
+            )
+        else:
+            value = str(
+                node.get("content", "")
+            )
 
-    return ""
+            if not value:
+                value = node.get_text(
+                    " ",
+                    strip=True,
+                )
+
+        value = clean_text(value)
+
+        if value and value not in ingredients:
+            ingredients.append(value)
+
+    steps: list[str] = []
+
+    instruction_nodes = recipe.find_all(
+        attrs={"itemprop": "recipeInstructions"}
+    )
+
+    for node in instruction_nodes:
+        if node.name == "meta":
+            value = str(
+                node.get("content", "")
+            )
+
+            value = clean_text(value)
+
+            if value and value not in steps:
+                steps.append(value)
+
+            continue
+
+        child_steps = node.find_all(
+            ["li", "p"],
+        )
+
+        if child_steps:
+            for child in child_steps:
+                value = clean_text(
+                    child.get_text(
+                        " ",
+                        strip=True,
+                    )
+                )
+
+                if value and value not in steps:
+                    steps.append(value)
+        else:
+            value = clean_text(
+                node.get_text(
+                    " ",
+                    strip=True,
+                )
+            )
+
+            if value and value not in steps:
+                steps.append(value)
+
+    # Запасной поиск по классам, если itemprop отсутствует.
+    if not steps:
+        step_selectors = (
+            ".recipe-steps li",
+            ".recipe-instructions li",
+            ".recipe-preparation li",
+            ".instructions li",
+            ".steps li",
+            "[class*='step'] li",
+        )
+
+        for selector in step_selectors:
+            for node in recipe.select(selector):
+                value = clean_text(
+                    node.get_text(
+                        " ",
+                        strip=True,
+                    )
+                )
+
+                if value and value not in steps:
+                    steps.append(value)
+
+    # Последний запасной вариант:
+    # ищем заголовок «Приготовление» внутри блока рецепта.
+    if not steps:
+        heading = recipe.find(
+            string=re.compile(
+                r"^\s*(?:приготовление|"
+                r"способ приготовления|"
+                r"как приготовить)\s*:?\s*$",
+                re.IGNORECASE,
+            )
+        )
+
+        if heading:
+            container = heading.parent
+
+            if container:
+                sibling = container.find_next_sibling()
+
+                while sibling is not None:
+                    sibling_text = clean_text(
+                        sibling.get_text(
+                            " ",
+                            strip=True,
+                        )
+                    )
+
+                    if re.search(
+                        r"^(?:комментарии|"
+                        r"похожие рецепты|"
+                        r"советы)\b",
+                        sibling_text,
+                        re.IGNORECASE,
+                    ):
+                        break
+
+                    if sibling_text:
+                        child_steps = sibling.find_all(
+                            ["li", "p"],
+                        )
+
+                        if child_steps:
+                            for child in child_steps:
+                                value = clean_text(
+                                    child.get_text(
+                                        " ",
+                                        strip=True,
+                                    )
+                                )
+
+                                if (
+                                    value
+                                    and value not in steps
+                                ):
+                                    steps.append(value)
+                        elif sibling_text not in steps:
+                            steps.append(sibling_text)
+
+                    sibling = sibling.find_next_sibling()
+
+    if not ingredients or not steps:
+        print(
+            "VPUZO: неполный рецепт. "
+            f"ingredients={len(ingredients)}, "
+            f"steps={len(steps)}"
+        )
+        return ""
+
+    parts: list[str] = [
+        "Ингредиенты",
+    ]
+
+    for ingredient in ingredients:
+        parts.append(
+            f"- {ingredient}"
+        )
+
+    parts.extend(
+        [
+            "",
+            "Приготовление",
+        ]
+    )
+
+    for number, step in enumerate(
+        steps,
+        1,
+    ):
+        # Не добавляем вторую нумерацию, если она уже есть.
+        if re.match(
+            r"^\s*(?:шаг\s*)?\d+[\.\):\-]",
+            step,
+            re.IGNORECASE,
+        ):
+            parts.append(step)
+        else:
+            parts.append(
+                f"{number}. {step}"
+            )
+
+    return clean_text(
+        "\n".join(parts)
+    )
 
 
 def parse_povar(html: str) -> str:
