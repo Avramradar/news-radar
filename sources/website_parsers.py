@@ -272,7 +272,7 @@ def parse_vpuzo(html: str) -> str:
 
         parent = title
 
-        for _ in range(6):
+        for _ in range(2):
             parent = parent.parent
 
             if parent is None:
