@@ -264,53 +264,24 @@ def parse_vpuzo(html: str) -> str:
 
     title = soup.find("h1")
 
-    if title:
-        print(
-            "TITLE:",
-            clean_text(title.get_text()),
-        )
+    if not title:
+        return ""
 
-        parent = title
+    print(
+        "TITLE:",
+        clean_text(title.get_text()),
+    )
 
-        for _ in range(2):
-            parent = parent.parent
+    parent = title
 
-            if parent is None:
-                break
+    for _ in range(2):
+        parent = parent.parent
 
-            print("=" * 60)
-            print(
-                clean_text(
-                    parent.get_text("\n")
-                )[:3000]
-            )
+        if parent is None:
+            break
 
-    return ""
-
-    for lst in soup.find_all(["ul", "ol"])[:15]:
-        print(
-            "LIST:",
-            lst.get("class"),
-            clean_text(lst.get_text("\n"))[:300],
-        )
-
-    return ""
-
-    if recipe_text:
-        print("VPUZO DEBUG: рецепт найден в JSON-LD")
-        return recipe_text
-
-    article = soup.find("article")
-
-    if article:
-        article_text = clean_text(
-            article.get_text("\n")
-        )
-
-        print(
-            "VPUZO DEBUG article preview:\n"
-            f"{article_text[:2500]}"
-        )
+        print("=" * 60)
+        print(parent.prettify()[:4000])
 
     return ""
 
