@@ -10,14 +10,6 @@ from sources.website_parsers import (
     parse_gastronom,
     parse_iamcook,
     parse_povar,
-)
-
-from sources.website_parsers import (
-    parse_1000menu,
-    parse_eda,
-    parse_gastronom,
-    parse_iamcook,
-    parse_povar,
     parse_say7,
 )
 
