@@ -281,7 +281,7 @@ def parse_vpuzo(html: str) -> str:
             break
 
         print("=" * 60)
-        print(parent.prettify()[:4000])
+        print(parent.prettify()[:20000])
 
     return ""
 
