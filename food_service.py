@@ -542,21 +542,33 @@ def get_recipe_validation_reason(text: str) -> str:
 def publish_recipe(post: FoodPost) -> str:
     """
     Проверяет, обрабатывает и публикует рецепт.
+
+    При успешной публикации возвращает строку:
+    Рецепт опубликован: TELEGRAM_MESSAGE_ID
+
+    По этой строке food_runner.py понимает,
+    что рецепт можно переслать в News Radar.
     """
-    source_text = normalize_source_text(post.text)
+    source_text = normalize_source_text(
+        post.text
+    )
+
     print(
-    "\n===== RECIPE DEBUG START =====\n"
-    f"message_id={post.message_id}\n"
-    f"{source_text[:2500]}\n"
-    "===== RECIPE DEBUG END =====\n"
-)
+        "\n===== RECIPE DEBUG START =====\n"
+        f"message_id={post.message_id}\n"
+        f"{source_text[:2500]}\n"
+        "===== RECIPE DEBUG END =====\n"
+    )
 
     if not is_recipe_complete(source_text):
-        reason = get_recipe_validation_reason(source_text)
+        reason = get_recipe_validation_reason(
+            source_text
+        )
 
         message = (
-            "Пропуск: рецепт не содержит полного списка "
-            "ингредиентов или описания приготовления."
+            "Пропуск: рецепт не содержит полного "
+            "списка ингредиентов или описания "
+            "приготовления."
         )
 
         print(
@@ -565,9 +577,12 @@ def publish_recipe(post: FoodPost) -> str:
             f"length={len(source_text)}, "
             f"lines={count_meaningful_lines(source_text)}, "
             f"markers={count_food_markers(source_text)}, "
-            f"ingredient_lines={count_ingredient_lines(source_text)}, "
-            f"ingredients_section={has_ingredients_section(source_text)}, "
-            f"cooking_section={has_cooking_section(source_text)}, "
+            f"ingredient_lines="
+            f"{count_ingredient_lines(source_text)}, "
+            f"ingredients_section="
+            f"{has_ingredients_section(source_text)}, "
+            f"cooking_section="
+            f"{has_cooking_section(source_text)}, "
             f"reason={reason}"
         )
 
@@ -596,7 +611,11 @@ def publish_recipe(post: FoodPost) -> str:
     print(
         "Recipe published successfully. "
         f"source_message_id={post.message_id}, "
-        f"telegram_message_id={published_message_id}"
+        f"telegram_message_id="
+        f"{published_message_id}"
     )
 
-    return result.text
+    return (
+        "Рецепт опубликован: "
+        f"{published_message_id}"
+    )
