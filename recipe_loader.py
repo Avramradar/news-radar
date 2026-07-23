@@ -7,6 +7,7 @@ import requests
 from sources.website_parsers import (
     parse_1000menu,
     parse_eda,
+    parse_gastronom,
     parse_iamcook,
     parse_povar,
 )
@@ -44,6 +45,9 @@ class RecipeLoader:
 
         if "povar.ru" in host:
             return parse_povar(html)
+
+        if "gastronom.ru" in host:
+            return parse_gastronom(html)
 
         if "iamcook.ru" in host:
             return parse_iamcook(html)
