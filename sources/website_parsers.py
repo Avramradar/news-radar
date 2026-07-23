@@ -255,24 +255,19 @@ def parse_say7(html: str) -> str:
     return parse_json_ld_recipe(html)
 
 def parse_vpuzo(html: str) -> str:
-    """
-    Диагностика структуры vpuzo.com.
-    """
     soup = BeautifulSoup(
         html,
         "lxml",
     )
 
-    print(
-        "VPUZO DEBUG: "
-        f"title={soup.title.get_text(strip=True) if soup.title else ''}; "
-        f"json_ld={len(soup.find_all('script', type='application/ld+json'))}; "
-        f"articles={len(soup.find_all('article'))}; "
-        f"tables={len(soup.find_all('table'))}; "
-        f"lists={len(soup.find_all(['ul', 'ol']))}"
-    )
+    for lst in soup.find_all(["ul", "ol"])[:15]:
+        print(
+            "LIST:",
+            lst.get("class"),
+            clean_text(lst.get_text("\n"))[:300],
+        )
 
-    recipe_text = parse_json_ld_recipe(html)
+    return ""
 
     if recipe_text:
         print("VPUZO DEBUG: рецепт найден в JSON-LD")
