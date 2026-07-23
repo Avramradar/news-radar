@@ -10,38 +10,70 @@ import requests
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 
-FOOD_CHANNEL = os.getenv("FOOD_CHANNEL", "@FoodRadarDaily")
-NEWS_CHANNEL = os.getenv("NEWS_CHANNEL", "@newsRadar2026")
+FOOD_CHANNEL = os.getenv(
+    "FOOD_CHANNEL",
+    "@FoodRadarDaily",
+)
+
+NEWS_CHANNEL = os.getenv(
+    "NEWS_CHANNEL",
+    "@newsRadar2026",
+)
 
 FOOD_STATE_FILE = Path(
-    os.getenv("FOOD_STATE_FILE", "food_state.json")
+    os.getenv(
+        "FOOD_STATE_FILE",
+        "food_state.json",
+    )
 )
 
 REPOST_STATE_FILE = Path(
-    os.getenv("REPOST_STATE_FILE", "food_to_news_state.json")
+    os.getenv(
+        "REPOST_STATE_FILE",
+        "food_to_news_state.json",
+    )
 )
 
 
-def load_json(path: Path, default: Any) -> Any:
+def load_json(
+    path: Path,
+    default: Any,
+) -> Any:
     if not path.exists():
         return default
 
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
+        return json.loads(
+            path.read_text(
+                encoding="utf-8",
+            )
+        )
+    except (
+        json.JSONDecodeError,
+        OSError,
+    ):
         return default
 
 
-def save_json(path: Path, data: Any) -> None:
+def save_json(
+    path: Path,
+    data: Any,
+) -> None:
     path.write_text(
-        json.dumps(data, ensure_ascii=False, indent=2),
+        json.dumps(
+            data,
+            ensure_ascii=False,
+            indent=2,
+        ),
         encoding="utf-8",
     )
 
 
-def find_message_ids(value: Any) -> list[int]:
+def find_message_ids(
+    value: Any,
+) -> list[int]:
     """
-    Ищет Telegram message_id внутри food_state.json,
+    Ищет Telegram message_id внутри food_state.json
     независимо от точной структуры файла.
     """
     message_ids: list[int] = []
@@ -56,22 +88,33 @@ def find_message_ids(value: Any) -> list[int]:
                 "food_message_id",
             }:
                 try:
-                    message_ids.append(int(item))
-                except (TypeError, ValueError):
+                    message_ids.append(
+                        int(item)
+                    )
+                except (
+                    TypeError,
+                    ValueError,
+                ):
                     pass
 
-            message_ids.extend(find_message_ids(item))
+            message_ids.extend(
+                find_message_ids(item)
+            )
 
     elif isinstance(value, list):
         for item in value:
-            message_ids.extend(find_message_ids(item))
+            message_ids.extend(
+                find_message_ids(item)
+            )
 
     return message_ids
 
 
-def copy_message(message_id: int) -> int:
+def forward_message(
+    message_id: int,
+) -> int:
     url = (
-        f"https://api.telegram.org/"
+        "https://api.telegram.org/"
         f"bot{BOT_TOKEN}/forwardMessage"
     )
 
@@ -85,34 +128,52 @@ def copy_message(message_id: int) -> int:
         timeout=30,
     )
 
-    print("Telegram response:", response.text)
+    print(
+        "Telegram response:",
+        response.text,
+    )
+
     response.raise_for_status()
 
     result = response.json()
 
     if not result.get("ok"):
         raise RuntimeError(
-            f"Telegram вернул ошибку: {result}"
+            "Telegram вернул ошибку: "
+            f"{result}"
         )
 
-    return int(result["result"]["message_id"])
+    return int(
+        result["result"]["message_id"]
+    )
 
 
 def main() -> None:
-    food_state = load_json(FOOD_STATE_FILE, {})
-    message_ids = find_message_ids(food_state)
+    food_state = load_json(
+        FOOD_STATE_FILE,
+        {},
+    )
+
+    message_ids = find_message_ids(
+        food_state
+    )
 
     if not message_ids:
         print(
-            "В food_state.json не найден message_id рецепта."
+            "В food_state.json не найден "
+            "message_id рецепта."
         )
         return
 
-    latest_food_message_id = max(message_ids)
+    latest_food_message_id = max(
+        message_ids
+    )
 
     repost_state = load_json(
         REPOST_STATE_FILE,
-        {"copied_message_ids": []},
+        {
+            "copied_message_ids": [],
+        },
     )
 
     copied_ids = {
@@ -125,30 +186,47 @@ def main() -> None:
 
     if latest_food_message_id in copied_ids:
         print(
-            "Этот рецепт уже был скопирован в News Radar:",
+            "Этот рецепт уже был отправлен "
+            "в News Radar:",
             latest_food_message_id,
         )
         return
-    send_intro()
-    news_message_id = copy_message(
+
+    print(
+        "Отправляем рецепт в News Radar:",
+        latest_food_message_id,
+    )
+
+    news_message_id = forward_message(
         latest_food_message_id
     )
 
-    copied_ids.add(latest_food_message_id)
+    copied_ids.add(
+        latest_food_message_id
+    )
 
     save_json(
         REPOST_STATE_FILE,
         {
-            "copied_message_ids": sorted(copied_ids),
-            "last_food_message_id": latest_food_message_id,
-            "last_news_message_id": news_message_id,
+            "copied_message_ids": sorted(
+                copied_ids
+            ),
+            "last_food_message_id": (
+                latest_food_message_id
+            ),
+            "last_news_message_id": (
+                news_message_id
+            ),
         },
     )
 
     print(
-        "Рецепт скопирован из Food Radar в News Radar.",
-        f"Food message_id: {latest_food_message_id}.",
-        f"News message_id: {news_message_id}.",
+        "Рецепт отправлен из Food Radar "
+        "в News Radar.",
+        "Food message_id:",
+        latest_food_message_id,
+        "News message_id:",
+        news_message_id,
     )
 
 
