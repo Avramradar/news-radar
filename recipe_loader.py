@@ -7,10 +7,11 @@ import requests
 from sources.website_parsers import (
     parse_1000menu,
     parse_eda,
-    parse_gastronom,
     parse_iamcook,
     parse_povar,
     parse_say7,
+    parse_gastronom,
+    parse_vpuzo,
 )
 
 class RecipeLoader:
@@ -51,6 +52,9 @@ class RecipeLoader:
 
         if "say7.info" in host:
             return parse_say7(html)
+
+        if "vpuzo.com" in host:
+            return parse_vpuzo(html)
 
         if "iamcook.ru" in host:
             return parse_iamcook(html)
