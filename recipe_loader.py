@@ -12,6 +12,14 @@ from sources.website_parsers import (
     parse_povar,
 )
 
+from sources.website_parsers import (
+    parse_1000menu,
+    parse_eda,
+    parse_gastronom,
+    parse_iamcook,
+    parse_povar,
+    parse_say7,
+)
 
 class RecipeLoader:
     """
@@ -48,6 +56,9 @@ class RecipeLoader:
 
         if "gastronom.ru" in host:
             return parse_gastronom(html)
+
+        if "say7.info" in host:
+            return parse_say7(html)
 
         if "iamcook.ru" in host:
             return parse_iamcook(html)
