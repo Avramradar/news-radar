@@ -184,6 +184,7 @@ def parse_json_ld_recipe(html: str) -> str:
         "script",
         type="application/ld+json",
     )
+    print("JSON-LD scripts:", len(scripts))
 
     for script in scripts:
         raw_json = script.string
