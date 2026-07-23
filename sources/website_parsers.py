@@ -246,6 +246,14 @@ def parse_1000menu(html: str) -> str:
     """
     return parse_json_ld_recipe(html)
 
+def parse_say7(html: str) -> str:
+    """
+    Извлекает рецепт с say7.info.
+
+    Сначала пытается использовать Schema.org Recipe.
+    """
+    return parse_json_ld_recipe(html)
+
 
 def parse_povar(html: str) -> str:
     """
