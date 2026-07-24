@@ -20,6 +20,7 @@ youtube:ужин
 youtube:завтрак
 youtube:обед
 youtube:пп рецепты
+youtube:@stalic62
 
 # Сайты
 site:povarenok.ru
