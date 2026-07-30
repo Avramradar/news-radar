@@ -5,6 +5,9 @@ on:
     # Обычная новость каждые 15 минут
     - cron: "3,18,33,48 * * * *"
 
+    # Military Radar каждые 15 минут
+    - cron: "8,23,38,53 * * * *"
+
     # Сводка в 08:05 и 20:05 по Москве
     # 05:05 и 17:05 UTC
     - cron: "5 5,17 * * *"
@@ -179,7 +182,9 @@ jobs:
   publish-military:
     if: >
       github.event_name == 'workflow_dispatch' &&
-      inputs.mode == 'military'
+      inputs.mode == 'military' ||
+      github.event_name == 'schedule' &&
+      github.event.schedule == '8,23,38,53 * * * *'
 
     runs-on: ubuntu-latest
     timeout-minutes: 15
