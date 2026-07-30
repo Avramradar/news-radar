@@ -6,6 +6,7 @@ import html
 import json
 import os
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -24,8 +25,11 @@ STATE_FILE = TOPIC_DIR / "state.json"
 
 TELEGRAM_TIMEOUT = 20
 MAX_MESSAGE_LENGTH = 3900
-MAX_STATE_ITEMS = 5000
-DEFAULT_MAX_POSTS_PER_RUN = 3
+MAX_STATE_ITEMS = 10000
+
+DEFAULT_MAX_POSTS_PER_RUN = 60
+DEFAULT_MAX_POSTS_FROM_CHANNEL = 2
+
 MIN_CLEAN_TEXT_LENGTH = 25
 
 
@@ -79,9 +83,7 @@ MARKDOWN_LINK_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
-REPEATED_EMPTY_LINES_PATTERN = re.compile(
-    r"\n{3,}",
-)
+REPEATED_EMPTY_LINES_PATTERN = re.compile(r"\n{3,}")
 
 LEADING_PROMO_EMOJI_PATTERN = re.compile(
     r"^[\s📢📣🔔➡️👉👆👇✅❗❕]+$"
@@ -96,15 +98,19 @@ def load_lines(path: Path) -> list[str]:
 
     result: list[str] = []
 
-    for raw_line in path.read_text(
-        encoding="utf-8",
-    ).splitlines():
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
 
         if not line or line.startswith("#"):
             continue
 
-        result.append(line)
+        line = line.removeprefix("https://t.me/")
+        line = line.removeprefix("http://t.me/")
+        line = line.removeprefix("@")
+        line = line.strip("/ ")
+
+        if line:
+            result.append(line)
 
     return list(dict.fromkeys(result))
 
@@ -135,6 +141,13 @@ def load_config(path: Path) -> dict[str, Any]:
         )
     )
 
+    max_posts_from_channel = int(
+        raw_config.get(
+            "max_posts_from_channel",
+            DEFAULT_MAX_POSTS_FROM_CHANNEL,
+        )
+    )
+
     if not target_channel:
         raise ValueError(
             "В config.json не указан target_channel."
@@ -150,62 +163,90 @@ def load_config(path: Path) -> dict[str, Any]:
             "max_posts_per_run должен быть больше нуля."
         )
 
+    if max_posts_from_channel < 1:
+        raise ValueError(
+            "max_posts_from_channel должен быть больше нуля."
+        )
+
     return {
         "target_channel": target_channel,
         "posts_per_channel": posts_per_channel,
         "max_posts_per_run": max_posts_per_run,
+        "max_posts_from_channel": max_posts_from_channel,
     }
 
 
-def load_state(path: Path) -> set[int]:
-    """Загружает ID ранее опубликованных Telegram-сообщений."""
+def make_post_key(post: TelegramPost) -> str:
+    """Создаёт уникальный ключ сообщения с учётом канала."""
+    channel = str(post.channel).strip().lower()
+    return f"{channel}:{int(post.message_id)}"
+
+
+def load_state(path: Path) -> tuple[set[str], set[int]]:
+    """
+    Загружает состояние публикаций.
+
+    Новая схема использует ключи вида channel:message_id.
+    Старые числовые ID временно сохраняются для совместимости.
+    """
     if not path.exists():
-        return set()
+        return set(), set()
 
     try:
         raw_state = json.loads(
             path.read_text(encoding="utf-8")
         )
     except (OSError, json.JSONDecodeError) as error:
-        print(
-            f"Не удалось прочитать state.json: {error}"
-        )
-        return set()
+        print(f"Не удалось прочитать state.json: {error}")
+        return set(), set()
 
-    raw_ids = raw_state.get(
+    published_keys: set[str] = set()
+    legacy_message_ids: set[int] = set()
+
+    raw_keys = raw_state.get(
+        "published_post_keys",
+        [],
+    )
+
+    if isinstance(raw_keys, list):
+        for raw_key in raw_keys:
+            key = str(raw_key).strip()
+
+            if key:
+                published_keys.add(key)
+
+    raw_legacy_ids = raw_state.get(
         "published_message_ids",
         [],
     )
 
-    if not isinstance(raw_ids, list):
-        print(
-            "Некорректный state.json: "
-            "published_message_ids должен быть списком."
-        )
-        return set()
+    if isinstance(raw_legacy_ids, list):
+        for raw_id in raw_legacy_ids:
+            try:
+                legacy_message_ids.add(int(raw_id))
+            except (TypeError, ValueError):
+                continue
 
-    published_ids: set[int] = set()
-
-    for raw_id in raw_ids:
-        try:
-            published_ids.add(int(raw_id))
-        except (TypeError, ValueError):
-            continue
-
-    return published_ids
+    return published_keys, legacy_message_ids
 
 
 def save_state(
     path: Path,
-    published_ids: set[int],
+    published_keys: set[str],
+    legacy_message_ids: set[int],
 ) -> None:
-    """Сохраняет состояние атомарно, чтобы файл не повредился."""
-    limited_ids = sorted(
-        published_ids,
+    """Сохраняет состояние атомарно."""
+    limited_keys = sorted(
+        published_keys
+    )[-MAX_STATE_ITEMS:]
+
+    limited_legacy_ids = sorted(
+        legacy_message_ids
     )[-MAX_STATE_ITEMS:]
 
     state = {
-        "published_message_ids": limited_ids,
+        "published_post_keys": limited_keys,
+        "published_message_ids": limited_legacy_ids,
     }
 
     temporary_path = path.with_suffix(".tmp")
@@ -232,10 +273,7 @@ def get_bot_token() -> str:
     )
 
     for variable_name in possible_names:
-        token = os.getenv(
-            variable_name,
-            "",
-        ).strip()
+        token = os.getenv(variable_name, "").strip()
 
         if token:
             print(
@@ -296,19 +334,10 @@ def is_promotional_line(line: str) -> bool:
 
 def clean_post_text(raw_text: str) -> str:
     """Удаляет рекламу, ссылки и лишнее оформление из текста."""
-    text = html.unescape(
-        raw_text or ""
-    )
+    text = html.unescape(raw_text or "")
 
-    text = text.replace(
-        "\u00a0",
-        " ",
-    )
-
-    text = text.replace(
-        "\u200b",
-        "",
-    )
+    text = text.replace("\u00a0", " ")
+    text = text.replace("\u200b", "")
 
     text = MARKDOWN_LINK_PATTERN.sub(
         r"\1",
@@ -331,15 +360,8 @@ def clean_post_text(raw_text: str) -> str:
         if is_promotional_line(line):
             continue
 
-        line = TELEGRAM_LINK_PATTERN.sub(
-            "",
-            line,
-        )
-
-        line = GENERAL_URL_PATTERN.sub(
-            "",
-            line,
-        )
+        line = TELEGRAM_LINK_PATTERN.sub("", line)
+        line = GENERAL_URL_PATTERN.sub("", line)
 
         line = re.sub(
             r"\s+",
@@ -370,21 +392,13 @@ def clean_post_text(raw_text: str) -> str:
 
         cleaned_lines.append(line)
 
-    while (
-        cleaned_lines
-        and cleaned_lines[0] == ""
-    ):
+    while cleaned_lines and cleaned_lines[0] == "":
         cleaned_lines.pop(0)
 
-    while (
-        cleaned_lines
-        and cleaned_lines[-1] == ""
-    ):
+    while cleaned_lines and cleaned_lines[-1] == "":
         cleaned_lines.pop()
 
-    cleaned_text = "\n".join(
-        cleaned_lines
-    )
+    cleaned_text = "\n".join(cleaned_lines)
 
     cleaned_text = REPEATED_EMPTY_LINES_PATTERN.sub(
         "\n\n",
@@ -407,7 +421,7 @@ def clean_post_text(raw_text: str) -> str:
 
 
 def format_post(post: TelegramPost) -> str:
-    """Формирует очищенную публикацию для тематического канала."""
+    """Формирует очищенную публикацию."""
     source_name = f"@{post.channel}"
     text = clean_post_text(post.text)
 
@@ -457,9 +471,7 @@ def publish_post(
     )
 
     if response.ok:
-        print(
-            f"Опубликовано: {post.source_url}"
-        )
+        print(f"Опубликовано: {post.source_url}")
         return True
 
     print(
@@ -473,20 +485,27 @@ def publish_post(
 def select_new_posts(
     posts: list[TelegramPost],
     military_filter: MilitaryFilter,
-    published_ids: set[int],
+    published_keys: set[str],
+    legacy_message_ids: set[int],
 ) -> list[TelegramPost]:
     """Оставляет только новые сообщения, прошедшие фильтр."""
     selected: list[TelegramPost] = []
-    current_run_ids: set[int] = set()
+    current_run_keys: set[str] = set()
 
     for post in posts:
-        if post.message_id in published_ids:
+        post_key = make_post_key(post)
+
+        if post_key in published_keys:
             continue
 
-        if post.message_id in current_run_ids:
+        if post_key in current_run_keys:
             continue
 
-        current_run_ids.add(post.message_id)
+        # Совместимость со старым state.json.
+        if post.message_id in legacy_message_ids:
+            continue
+
+        current_run_keys.add(post_key)
 
         if not military_filter.check(post):
             continue
@@ -503,6 +522,61 @@ def select_new_posts(
         selected.append(post)
 
     return selected
+
+
+def distribute_posts_round_robin(
+    posts: list[TelegramPost],
+    channels: list[str],
+    max_posts_from_channel: int,
+    max_posts_per_run: int,
+) -> list[TelegramPost]:
+    """
+    Распределяет публикации по источникам.
+
+    Сначала берётся одна свежая публикация каждого канала,
+    затем вторая каждого канала и так далее.
+    """
+    grouped_posts: dict[str, list[TelegramPost]] = defaultdict(list)
+
+    for post in posts:
+        channel_key = str(post.channel).strip().lower()
+        grouped_posts[channel_key].append(post)
+
+    for channel_posts in grouped_posts.values():
+        channel_posts.sort(
+            key=lambda post: int(post.message_id),
+            reverse=True,
+        )
+
+        del channel_posts[max_posts_from_channel:]
+
+    channel_order = [
+        channel.strip().lower()
+        for channel in channels
+        if channel.strip().lower() in grouped_posts
+    ]
+
+    # На случай, если парсер вернул канал,
+    # которого почему-либо нет в channels.txt.
+    for channel_key in grouped_posts:
+        if channel_key not in channel_order:
+            channel_order.append(channel_key)
+
+    distributed: list[TelegramPost] = []
+
+    for position in range(max_posts_from_channel):
+        for channel_key in channel_order:
+            channel_posts = grouped_posts[channel_key]
+
+            if position >= len(channel_posts):
+                continue
+
+            distributed.append(channel_posts[position])
+
+            if len(distributed) >= max_posts_per_run:
+                return distributed
+
+    return distributed
 
 
 def main() -> None:
@@ -530,25 +604,39 @@ def main() -> None:
         )
         return
 
-    target_channel = str(
-        config["target_channel"]
+    target_channel = str(config["target_channel"])
+    posts_per_channel = int(config["posts_per_channel"])
+    max_posts_per_run = int(config["max_posts_per_run"])
+
+    max_posts_from_channel = int(
+        config["max_posts_from_channel"]
     )
 
-    posts_per_channel = int(
-        config["posts_per_channel"]
+    published_keys, legacy_message_ids = load_state(
+        STATE_FILE
     )
-
-    max_posts_per_run = int(
-        config["max_posts_per_run"]
-    )
-
-    published_ids = load_state(STATE_FILE)
 
     print(f"Целевой канал: {target_channel}")
     print(f"Источников: {len(channels)}")
+
     print(
-        "Ранее опубликованных ID: "
-        f"{len(published_ids)}"
+        "Ранее опубликованных уникальных ключей: "
+        f"{len(published_keys)}"
+    )
+
+    print(
+        "Старых числовых ID в состоянии: "
+        f"{len(legacy_message_ids)}"
+    )
+
+    print(
+        "Максимум с одного источника за запуск: "
+        f"{max_posts_from_channel}"
+    )
+
+    print(
+        "Общий максимум публикаций за запуск: "
+        f"{max_posts_per_run}"
     )
 
     parser = TelegramPublicParser(
@@ -572,7 +660,8 @@ def main() -> None:
     selected_posts = select_new_posts(
         posts=posts,
         military_filter=military_filter,
-        published_ids=published_ids,
+        published_keys=published_keys,
+        legacy_message_ids=legacy_message_ids,
     )
 
     print(
@@ -580,11 +669,20 @@ def main() -> None:
         f"{len(selected_posts)}"
     )
 
-    posts_to_publish = selected_posts[
-        -max_posts_per_run:
-    ]
+    posts_to_publish = distribute_posts_round_robin(
+        posts=selected_posts,
+        channels=channels,
+        max_posts_from_channel=max_posts_from_channel,
+        max_posts_per_run=max_posts_per_run,
+    )
+
+    print(
+        "Подготовлено к публикации после распределения: "
+        f"{len(posts_to_publish)}"
+    )
 
     published_count = 0
+    published_by_channel: dict[str, int] = defaultdict(int)
 
     for post in posts_to_publish:
         try:
@@ -603,13 +701,18 @@ def main() -> None:
         if not success:
             continue
 
-        published_ids.add(post.message_id)
+        post_key = make_post_key(post)
+        published_keys.add(post_key)
+
+        channel_key = str(post.channel).strip()
+        published_by_channel[channel_key] += 1
         published_count += 1
 
         try:
             save_state(
-                STATE_FILE,
-                published_ids,
+                path=STATE_FILE,
+                published_keys=published_keys,
+                legacy_message_ids=legacy_message_ids,
             )
         except OSError as error:
             print(
@@ -617,6 +720,12 @@ def main() -> None:
                 f"не сохранено: {error}"
             )
             return
+
+    if published_by_channel:
+        print("Распределение опубликованных сообщений:")
+
+        for channel_name, count in published_by_channel.items():
+            print(f"  @{channel_name}: {count}")
 
     print(
         "Работа завершена. "
