@@ -452,7 +452,7 @@ def publish_post(
             "chat_id": target_channel,
             "text": format_post(post),
             "parse_mode": "HTML",
-            "disable_web_page_preview": False,
+            "disable_web_page_preview": True,
         },
     )
 
