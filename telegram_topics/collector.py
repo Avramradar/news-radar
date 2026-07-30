@@ -33,6 +33,50 @@ DEFAULT_MAX_POSTS_FROM_CHANNEL = 2
 MIN_CLEAN_TEXT_LENGTH = 25
 
 
+# Фразы, после которых весь оставшийся текст считается
+# рекламным или служебным хвостом.
+TAIL_CUTOFF_PHRASES = (
+    "поддержать нас",
+    "поддержите нас",
+    "поддержать проект",
+    "поддержать канал",
+    "помочь проекту",
+    "помочь каналу",
+    "для переводов из-за рубежа",
+    "для переводов из за рубежа",
+    "для переводов",
+    "реквизиты для помощи",
+    "реквизиты для перевода",
+    "реквизиты для поддержки",
+    "все подробности о сборах",
+    "подробности о сборах",
+    "отчеты о сборах",
+    "отчёты о сборах",
+    "сборы и отчеты",
+    "сборы и отчёты",
+    "карта в высоком разрешении",
+    "карты в высоком разрешении",
+    "онлайн-карты доступны",
+    "онлайн карты доступны",
+    "english version",
+    "версия на английском",
+    "написать нам в бот обратной связи",
+    "бот обратной связи",
+    "обратная связь",
+    "предложить новость",
+    "прислать новость",
+    "по вопросам рекламы",
+    "реклама и сотрудничество",
+    "разместить рекламу",
+    "наши социальные сети",
+    "мы в социальных сетях",
+    "следите за нами",
+    "подписывайтесь на нас",
+    "подпишитесь на нас",
+)
+
+
+# Фразы, при наличии которых удаляется только конкретная строка.
 PROMO_PHRASES = (
     "не грузит фото и видео",
     "переходи в наш max",
@@ -50,43 +94,111 @@ PROMO_PHRASES = (
     "наш канал",
     "наш чат",
     "наш бот",
-    "предложить новость",
-    "прислать новость",
-    "обратная связь",
-    "реклама и сотрудничество",
-    "по вопросам рекламы",
-    "разместить рекламу",
+    "наше приложение",
+    "скачать приложение",
+    "курс на макс",
+    "ос в max",
+    "ос в макс",
+    "мы в max",
+    "мы в макс",
+    "читайте нас в max",
+    "читайте нас в макс",
+    "присоединяйтесь к нам",
+    "подпишись на",
+    "подпишитесь на",
 )
 
-PROMO_LINE_PATTERNS = (
-    r"^\s*реклама\s*$",
-    r"^\s*подписаться\s*$",
-    r"^\s*подписывайтесь\s*$",
-    r"^\s*наш\s+чат\s*$",
-    r"^\s*наш\s+бот\s*$",
-    r"^\s*источник\s*:\s*$",
-)
 
 TELEGRAM_LINK_PATTERN = re.compile(
-    r"(?:https?://)?(?:www\.)?(?:t\.me|telegram\.me)/[^\s<>]+",
+    r"(?:https?://)?(?:www\.)?"
+    r"(?:t\.me|telegram\.me)/[^\s<>]+",
     flags=re.IGNORECASE,
 )
 
 GENERAL_URL_PATTERN = re.compile(
-    r"https?://[^\s<>]+",
+    r"(?:https?://|www\.)[^\s<>]+",
     flags=re.IGNORECASE,
 )
 
 MARKDOWN_LINK_PATTERN = re.compile(
-    r"\[([^\]]+)]\((?:https?://)?(?:www\.)?"
+    r"\[([^\]]+)]\("
+    r"(?:https?://)?(?:www\.)?"
     r"(?:t\.me|telegram\.me)/[^)]+\)",
     flags=re.IGNORECASE,
 )
 
-REPEATED_EMPTY_LINES_PATTERN = re.compile(r"\n{3,}")
+USERNAME_PATTERN = re.compile(
+    r"(?<![\w@])@[A-Za-z0-9_]{4,}",
+)
 
-LEADING_PROMO_EMOJI_PATTERN = re.compile(
-    r"^[\s📢📣🔔➡️👉👆👇✅❗❕]+$"
+HASHTAG_PATTERN = re.compile(
+    r"(?<!\w)#[A-Za-zА-Яа-яЁёІіЇїЄє0-9_]+",
+)
+
+PHONE_PATTERN = re.compile(
+    r"(?:\+?\d[\d\s()\-]{8,}\d)"
+)
+
+LONG_NUMBER_PATTERN = re.compile(
+    r"(?<!\d)\d{12,20}(?!\d)"
+)
+
+CARD_GROUP_PATTERN = re.compile(
+    r"(?<!\d)(?:\d{4}[\s\-]?){3}\d{4}(?!\d)"
+)
+
+CRYPTO_ADDRESS_PATTERN = re.compile(
+    r"\b(?:"
+    r"bc1[a-zA-HJ-NP-Z0-9]{20,}|"
+    r"[13][a-km-zA-HJ-NP-Z1-9]{25,34}|"
+    r"0x[a-fA-F0-9]{40}|"
+    r"4[0-9AB][1-9A-HJ-NP-Za-km-z]{90,110}"
+    r")\b"
+)
+
+REPEATED_EMPTY_LINES_PATTERN = re.compile(
+    r"\n{3,}"
+)
+
+ONLY_PUNCTUATION_PATTERN = re.compile(
+    r"^[\s\-—–_=+|•·▪▫●○■□◆◇"
+    r"📌📍📢📣🔔➡️👉👆👇✅❗❕"
+    r"💬📱✉️⭐⚠️🎯✈️🚀🇷🇺🇺🇦"
+    r"⬛◾🔹🔸]+$"
+)
+
+SOCIAL_SERVICE_PATTERN = re.compile(
+    r"^(?:"
+    r"vk|вк|"
+    r"max|макс|"
+    r"дзен|dzen|"
+    r"rutube|рутуб|"
+    r"youtube|ютуб|"
+    r"telegram|телеграм|"
+    r"ok|одноклассники|"
+    r"ru|en|"
+    r"сайт|website|"
+    r"канал|чат|бот"
+    r")"
+    r"(?:\s*[:\-—–|•]*)?$",
+    flags=re.IGNORECASE,
+)
+
+PAYMENT_SERVICE_PATTERN = re.compile(
+    r"^(?:"
+    r"сбер|сбербанк|"
+    r"рнкб|альфа|альфа-банк|"
+    r"тинькофф|т-банк|"
+    r"сбп|"
+    r"втб|газпромбанк|"
+    r"bitcoin|btc|"
+    r"ethereum|eth|"
+    r"monero|xmr|"
+    r"криптовалюта|криптокошелёк|"
+    r"криптокошелек"
+    r")"
+    r"(?:\s*[:\-—–|•]*)?$",
+    flags=re.IGNORECASE,
 )
 
 
@@ -98,14 +210,21 @@ def load_lines(path: Path) -> list[str]:
 
     result: list[str] = []
 
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
+    for raw_line in path.read_text(
+        encoding="utf-8",
+    ).splitlines():
         line = raw_line.strip()
 
         if not line or line.startswith("#"):
             continue
 
-        line = line.removeprefix("https://t.me/")
-        line = line.removeprefix("http://t.me/")
+        line = re.sub(
+            r"^https?://(?:www\.)?t\.me/",
+            "",
+            line,
+            flags=re.IGNORECASE,
+        )
+
         line = line.removeprefix("@")
         line = line.strip("/ ")
 
@@ -183,12 +302,7 @@ def make_post_key(post: TelegramPost) -> str:
 
 
 def load_state(path: Path) -> tuple[set[str], set[int]]:
-    """
-    Загружает состояние публикаций.
-
-    Новая схема использует ключи вида channel:message_id.
-    Старые числовые ID временно сохраняются для совместимости.
-    """
+    """Загружает новое и старое состояние публикаций."""
     if not path.exists():
         return set(), set()
 
@@ -210,7 +324,7 @@ def load_state(path: Path) -> tuple[set[str], set[int]]:
 
     if isinstance(raw_keys, list):
         for raw_key in raw_keys:
-            key = str(raw_key).strip()
+            key = str(raw_key).strip().lower()
 
             if key:
                 published_keys.add(key)
@@ -265,7 +379,7 @@ def save_state(
 
 
 def get_bot_token() -> str:
-    """Получает токен Telegram-бота из переменных окружения."""
+    """Получает токен Telegram-бота."""
     possible_names = (
         "BOT_TOKEN",
         "TELEGRAM_BOT_TOKEN",
@@ -273,7 +387,10 @@ def get_bot_token() -> str:
     )
 
     for variable_name in possible_names:
-        token = os.getenv(variable_name, "").strip()
+        token = os.getenv(
+            variable_name,
+            "",
+        ).strip()
 
         if token:
             print(
@@ -285,46 +402,121 @@ def get_bot_token() -> str:
     return ""
 
 
-def is_promotional_line(line: str) -> bool:
-    """Определяет, является ли строка рекламной вставкой."""
+def normalize_for_check(text: str) -> str:
+    """Нормализует строку для проверки на мусор."""
+    normalized = html.unescape(
+        text or ""
+    )
+
+    normalized = normalized.replace(
+        "\u00a0",
+        " ",
+    )
+
+    normalized = normalized.replace(
+        "\u200b",
+        "",
+    )
+
+    normalized = normalized.lower()
+
+    normalized = re.sub(
+        r"[«»\"'`]+",
+        "",
+        normalized,
+    )
+
+    normalized = re.sub(
+        r"^[^\wа-яё]+",
+        "",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+
     normalized = re.sub(
         r"\s+",
         " ",
-        line,
-    ).strip().lower()
+        normalized,
+    )
+
+    return normalized.strip(" .,:;!?—–-|")
+
+
+def is_tail_cutoff_line(line: str) -> bool:
+    """Проверяет, начинается ли рекламный хвост."""
+    normalized = normalize_for_check(line)
 
     if not normalized:
         return False
 
-    for phrase in PROMO_PHRASES:
-        if phrase in normalized:
-            return True
-
-    for pattern in PROMO_LINE_PATTERNS:
-        if re.fullmatch(
-            pattern,
-            normalized,
-            flags=re.IGNORECASE,
+    for phrase in TAIL_CUTOFF_PHRASES:
+        if (
+            normalized == phrase
+            or normalized.startswith(phrase + " ")
+            or normalized.startswith(phrase + ":")
         ):
             return True
 
-    if (
-        "max" in normalized
-        and (
-            "переход" in normalized
-            or "фото" in normalized
-            or "видео" in normalized
-        )
+    return False
+
+
+def is_payment_line(line: str) -> bool:
+    """Определяет строки с реквизитами и донатами."""
+    normalized = normalize_for_check(line)
+
+    if not normalized:
+        return False
+
+    if PAYMENT_SERVICE_PATTERN.fullmatch(normalized):
+        return True
+
+    payment_words = (
+        "номер карты",
+        "карта сбер",
+        "карта рнкб",
+        "карта альфа",
+        "карта втб",
+        "по номеру телефона",
+        "по номеру тлф",
+        "по номеру тел",
+        "по номеру карты",
+        "для перевода",
+        "для доната",
+        "для пожертвований",
+        "кошелек btc",
+        "кошелёк btc",
+        "криптокошелек",
+        "криптокошелёк",
+    )
+
+    if any(
+        phrase in normalized
+        for phrase in payment_words
     ):
         return True
 
+    if CARD_GROUP_PATTERN.search(line):
+        return True
+
+    if LONG_NUMBER_PATTERN.search(line):
+        return True
+
+    if CRYPTO_ADDRESS_PATTERN.search(line):
+        return True
+
     if (
-        TELEGRAM_LINK_PATTERN.search(normalized)
-        and (
-            "подпис" in normalized
-            or "канал" in normalized
-            or "чат" in normalized
-            or "бот" in normalized
+        PHONE_PATTERN.search(line)
+        and any(
+            word in normalized
+            for word in (
+                "сбер",
+                "сбп",
+                "перевод",
+                "телефон",
+                "тлф",
+                "карта",
+                "донат",
+            )
         )
     ):
         return True
@@ -332,22 +524,178 @@ def is_promotional_line(line: str) -> bool:
     return False
 
 
-def clean_post_text(raw_text: str) -> str:
-    """Удаляет рекламу, ссылки и лишнее оформление из текста."""
-    text = html.unescape(raw_text or "")
+def is_social_service_line(line: str) -> bool:
+    """Удаляет отдельные строки с названиями социальных сетей."""
+    normalized = normalize_for_check(line)
 
-    text = text.replace("\u00a0", " ")
-    text = text.replace("\u200b", "")
+    if not normalized:
+        return False
 
-    text = MARKDOWN_LINK_PATTERN.sub(
-        r"\1",
-        text,
+    return bool(
+        SOCIAL_SERVICE_PATTERN.fullmatch(normalized)
     )
 
+
+def is_promotional_line(line: str) -> bool:
+    """Определяет рекламную или служебную строку."""
+    normalized = normalize_for_check(line)
+
+    if not normalized:
+        return False
+
+    if any(
+        phrase in normalized
+        for phrase in PROMO_PHRASES
+    ):
+        return True
+
+    if is_payment_line(line):
+        return True
+
+    if is_social_service_line(line):
+        return True
+
+    if ONLY_PUNCTUATION_PATTERN.fullmatch(line.strip()):
+        return True
+
+    if USERNAME_PATTERN.fullmatch(line.strip()):
+        return True
+
+    without_hashtags = HASHTAG_PATTERN.sub(
+        "",
+        line,
+    ).strip()
+
+    if (
+        HASHTAG_PATTERN.search(line)
+        and not without_hashtags
+    ):
+        return True
+
+    if GENERAL_URL_PATTERN.fullmatch(line.strip()):
+        return True
+
+    if TELEGRAM_LINK_PATTERN.fullmatch(line.strip()):
+        return True
+
+    if (
+        TELEGRAM_LINK_PATTERN.search(line)
+        and any(
+            word in normalized
+            for word in (
+                "подпис",
+                "канал",
+                "чат",
+                "бот",
+                "новости",
+            )
+        )
+    ):
+        return True
+
+    return False
+
+
+def clean_inline_garbage(line: str) -> str:
+    """Удаляет ссылки, хештеги и упоминания внутри полезной строки."""
+    cleaned = line
+
+    cleaned = MARKDOWN_LINK_PATTERN.sub(
+        r"\1",
+        cleaned,
+    )
+
+    cleaned = TELEGRAM_LINK_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = GENERAL_URL_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = USERNAME_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = HASHTAG_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = CARD_GROUP_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = CRYPTO_ADDRESS_PATTERN.sub(
+        "",
+        cleaned,
+    )
+
+    cleaned = re.sub(
+        r"\s+",
+        " ",
+        cleaned,
+    ).strip()
+
+    cleaned = re.sub(
+        r"^[|•·▪▫—–\-_=]+\s*",
+        "",
+        cleaned,
+    ).strip()
+
+    cleaned = re.sub(
+        r"\s*[|•·▪▫—–\-_=]+$",
+        "",
+        cleaned,
+    ).strip()
+
+    return cleaned
+
+
+def clean_post_text(raw_text: str) -> str:
+    """Агрессивно очищает Telegram-публикацию."""
+    text = html.unescape(
+        raw_text or ""
+    )
+
+    text = text.replace(
+        "\u00a0",
+        " ",
+    )
+
+    text = text.replace(
+        "\u200b",
+        "",
+    )
+
+    text = text.replace(
+        "\r\n",
+        "\n",
+    )
+
+    text = text.replace(
+        "\r",
+        "\n",
+    )
+
+    raw_lines = text.splitlines()
     cleaned_lines: list[str] = []
 
-    for raw_line in text.splitlines():
+    for raw_line in raw_lines:
         line = raw_line.strip()
+
+        # Если начался рекламный хвост,
+        # отбрасываем его вместе со всем последующим текстом.
+        if line and is_tail_cutoff_line(line):
+            print(
+                "Обрезан рекламный хвост начиная со строки: "
+                f"{line[:80]}"
+            )
+            break
 
         if not line:
             if (
@@ -360,45 +708,58 @@ def clean_post_text(raw_text: str) -> str:
         if is_promotional_line(line):
             continue
 
-        line = TELEGRAM_LINK_PATTERN.sub("", line)
-        line = GENERAL_URL_PATTERN.sub("", line)
-
-        line = re.sub(
-            r"\s+",
-            " ",
-            line,
-        ).strip()
-
-        line = re.sub(
-            r"^[|•·—–\-]+\s*",
-            "",
-            line,
-        ).strip()
-
-        line = re.sub(
-            r"\s*[|•·—–\-]+$",
-            "",
-            line,
-        ).strip()
+        line = clean_inline_garbage(line)
 
         if not line:
-            continue
-
-        if LEADING_PROMO_EMOJI_PATTERN.fullmatch(line):
             continue
 
         if is_promotional_line(line):
             continue
 
+        # Удаляем короткие остатки вроде:
+        # "MAX", "VK", "RU", "EN", "Сбер".
+        if (
+            len(line) <= 20
+            and (
+                is_social_service_line(line)
+                or is_payment_line(line)
+            )
+        ):
+            continue
+
         cleaned_lines.append(line)
 
-    while cleaned_lines and cleaned_lines[0] == "":
+    # Убираем пустоту в начале и конце.
+    while (
+        cleaned_lines
+        and cleaned_lines[0] == ""
+    ):
         cleaned_lines.pop(0)
 
-    while cleaned_lines and cleaned_lines[-1] == "":
+    while (
+        cleaned_lines
+        and cleaned_lines[-1] == ""
+    ):
         cleaned_lines.pop()
 
-    cleaned_text = "\n".join(cleaned_lines)
+    # Удаляем повторяющиеся пустые строки.
+    compact_lines: list[str] = []
+
+    for line in cleaned_lines:
+        if (
+            line == ""
+            and (
+                not compact_lines
+                or compact_lines[-1] == ""
+            )
+        ):
+            continue
+
+        compact_lines.append(line)
+
+    cleaned_text = "\n".join(
+        compact_lines
+    )
 
     cleaned_text = REPEATED_EMPTY_LINES_PATTERN.sub(
         "\n\n",
@@ -413,6 +774,24 @@ def clean_post_text(raw_text: str) -> str:
 
     cleaned_text = re.sub(
         r"\n[ \t]+",
+        "\n",
+        cleaned_text,
+    )
+
+    cleaned_text = re.sub(
+        r" +([.,!?;:])",
+        r"\1",
+        cleaned_text,
+    )
+
+    cleaned_text = re.sub(
+        r"([,;:]){2,}",
+        r"\1",
+        cleaned_text,
+    )
+
+    cleaned_text = re.sub(
+        r"\n[.,;:!?—–\-]+\n",
         "\n",
         cleaned_text,
     )
@@ -444,7 +823,7 @@ def publish_post(
     target_channel: str,
     post: TelegramPost,
 ) -> bool:
-    """Публикует одно сообщение через Telegram Bot API."""
+    """Публикует сообщение через Telegram Bot API."""
     cleaned_text = clean_post_text(post.text)
 
     if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
@@ -471,7 +850,9 @@ def publish_post(
     )
 
     if response.ok:
-        print(f"Опубликовано: {post.source_url}")
+        print(
+            f"Опубликовано: {post.source_url}"
+        )
         return True
 
     print(
@@ -479,6 +860,7 @@ def publish_post(
         f"HTTP {response.status_code}; "
         f"{response.text}"
     )
+
     return False
 
 
@@ -488,9 +870,11 @@ def select_new_posts(
     published_keys: set[str],
     legacy_message_ids: set[int],
 ) -> list[TelegramPost]:
-    """Оставляет только новые сообщения, прошедшие фильтр."""
+    """Оставляет новые сообщения, прошедшие фильтр и очистку."""
     selected: list[TelegramPost] = []
     current_run_keys: set[str] = set()
+
+    use_legacy_ids = not published_keys
 
     for post in posts:
         post_key = make_post_key(post)
@@ -501,8 +885,10 @@ def select_new_posts(
         if post_key in current_run_keys:
             continue
 
-        # Совместимость со старым state.json.
-        if post.message_id in legacy_message_ids:
+        if (
+            use_legacy_ids
+            and post.message_id in legacy_message_ids
+        ):
             continue
 
         current_run_keys.add(post_key)
@@ -530,16 +916,17 @@ def distribute_posts_round_robin(
     max_posts_from_channel: int,
     max_posts_per_run: int,
 ) -> list[TelegramPost]:
-    """
-    Распределяет публикации по источникам.
-
-    Сначала берётся одна свежая публикация каждого канала,
-    затем вторая каждого канала и так далее.
-    """
-    grouped_posts: dict[str, list[TelegramPost]] = defaultdict(list)
+    """Распределяет публикации равномерно между источниками."""
+    grouped_posts: dict[
+        str,
+        list[TelegramPost],
+    ] = defaultdict(list)
 
     for post in posts:
-        channel_key = str(post.channel).strip().lower()
+        channel_key = str(
+            post.channel
+        ).strip().lower()
+
         grouped_posts[channel_key].append(post)
 
     for channel_posts in grouped_posts.values():
@@ -550,14 +937,17 @@ def distribute_posts_round_robin(
 
         del channel_posts[max_posts_from_channel:]
 
-    channel_order = [
-        channel.strip().lower()
-        for channel in channels
-        if channel.strip().lower() in grouped_posts
-    ]
+    channel_order: list[str] = []
 
-    # На случай, если парсер вернул канал,
-    # которого почему-либо нет в channels.txt.
+    for channel in channels:
+        channel_key = channel.strip().lower()
+
+        if (
+            channel_key in grouped_posts
+            and channel_key not in channel_order
+        ):
+            channel_order.append(channel_key)
+
     for channel_key in grouped_posts:
         if channel_key not in channel_order:
             channel_order.append(channel_key)
@@ -571,7 +961,9 @@ def distribute_posts_round_robin(
             if position >= len(channel_posts):
                 continue
 
-            distributed.append(channel_posts[position])
+            distributed.append(
+                channel_posts[position]
+            )
 
             if len(distributed) >= max_posts_per_run:
                 return distributed
@@ -604,9 +996,17 @@ def main() -> None:
         )
         return
 
-    target_channel = str(config["target_channel"])
-    posts_per_channel = int(config["posts_per_channel"])
-    max_posts_per_run = int(config["max_posts_per_run"])
+    target_channel = str(
+        config["target_channel"]
+    )
+
+    posts_per_channel = int(
+        config["posts_per_channel"]
+    )
+
+    max_posts_per_run = int(
+        config["max_posts_per_run"]
+    )
 
     max_posts_from_channel = int(
         config["max_posts_from_channel"]
@@ -625,17 +1025,12 @@ def main() -> None:
     )
 
     print(
-        "Старых числовых ID в состоянии: "
-        f"{len(legacy_message_ids)}"
-    )
-
-    print(
-        "Максимум с одного источника за запуск: "
+        "Максимум с одного источника: "
         f"{max_posts_from_channel}"
     )
 
     print(
-        "Общий максимум публикаций за запуск: "
+        "Общий максимум за запуск: "
         f"{max_posts_per_run}"
     )
 
@@ -677,12 +1072,16 @@ def main() -> None:
     )
 
     print(
-        "Подготовлено к публикации после распределения: "
+        "Подготовлено к публикации: "
         f"{len(posts_to_publish)}"
     )
 
     published_count = 0
-    published_by_channel: dict[str, int] = defaultdict(int)
+
+    published_by_channel: dict[
+        str,
+        int,
+    ] = defaultdict(int)
 
     for post in posts_to_publish:
         try:
@@ -704,8 +1103,11 @@ def main() -> None:
         post_key = make_post_key(post)
         published_keys.add(post_key)
 
-        channel_key = str(post.channel).strip()
-        published_by_channel[channel_key] += 1
+        channel_name = str(
+            post.channel
+        ).strip()
+
+        published_by_channel[channel_name] += 1
         published_count += 1
 
         try:
@@ -722,10 +1124,14 @@ def main() -> None:
             return
 
     if published_by_channel:
-        print("Распределение опубликованных сообщений:")
+        print("Распределение публикаций:")
 
-        for channel_name, count in published_by_channel.items():
-            print(f"  @{channel_name}: {count}")
+        for channel_name, count in (
+            published_by_channel.items()
+        ):
+            print(
+                f"  @{channel_name}: {count}"
+            )
 
     print(
         "Работа завершена. "
