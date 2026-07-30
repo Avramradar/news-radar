@@ -24,6 +24,7 @@ on:
           - news
           - digest
           - food
+          - military
 
 permissions:
   contents: write
@@ -174,3 +175,49 @@ jobs:
           CHANNEL: "@newsRadar2026"
           MODE: "digest"
         run: python app.py
+
+  publish-military:
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      inputs.mode == 'military'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Получить файлы
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Установить Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Установить зависимости
+        run: pip install -r requirements.txt
+
+      - name: Запустить Military Radar
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: python telegram_topics/collector.py
+
+      - name: Сохранить состояние Military Radar
+        run: |
+          git config user.name "news-radar-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          if [ -f telegram_topics/military/state.json ]; then
+            git add telegram_topics/military/state.json
+          fi
+
+          if git diff --cached --quiet; then
+            echo "Новых изменений нет"
+            exit 0
+          fi
+
+          git commit -m "Update military published posts"
+          git pull --rebase origin main
+          git push origin main
