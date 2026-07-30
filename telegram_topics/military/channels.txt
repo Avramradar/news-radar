@@ -1,2 +1,3 @@
 # Telegram-каналы для блока боевых сводок
 # Один username на строку, без https://t.me/
+novosti_efir
