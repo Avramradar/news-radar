@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,66 @@ TELEGRAM_TIMEOUT = 20
 MAX_MESSAGE_LENGTH = 3900
 MAX_STATE_ITEMS = 5000
 DEFAULT_MAX_POSTS_PER_RUN = 3
+MIN_CLEAN_TEXT_LENGTH = 25
+
+
+PROMO_PHRASES = (
+    "не грузит фото и видео",
+    "переходи в наш max",
+    "переходите в наш max",
+    "переходи в max",
+    "переходите в max",
+    "подписывайтесь на наш канал",
+    "подпишитесь на наш канал",
+    "подписаться на канал",
+    "подписаться",
+    "наш telegram-канал",
+    "наш телеграм-канал",
+    "наш telegram канал",
+    "наш телеграм канал",
+    "наш канал",
+    "наш чат",
+    "наш бот",
+    "предложить новость",
+    "прислать новость",
+    "обратная связь",
+    "реклама и сотрудничество",
+    "по вопросам рекламы",
+    "разместить рекламу",
+)
+
+PROMO_LINE_PATTERNS = (
+    r"^\s*реклама\s*$",
+    r"^\s*подписаться\s*$",
+    r"^\s*подписывайтесь\s*$",
+    r"^\s*наш\s+чат\s*$",
+    r"^\s*наш\s+бот\s*$",
+    r"^\s*источник\s*:\s*$",
+)
+
+TELEGRAM_LINK_PATTERN = re.compile(
+    r"(?:https?://)?(?:www\.)?(?:t\.me|telegram\.me)/[^\s<>]+",
+    flags=re.IGNORECASE,
+)
+
+GENERAL_URL_PATTERN = re.compile(
+    r"https?://[^\s<>]+",
+    flags=re.IGNORECASE,
+)
+
+MARKDOWN_LINK_PATTERN = re.compile(
+    r"\[([^\]]+)]\((?:https?://)?(?:www\.)?"
+    r"(?:t\.me|telegram\.me)/[^)]+\)",
+    flags=re.IGNORECASE,
+)
+
+REPEATED_EMPTY_LINES_PATTERN = re.compile(
+    r"\n{3,}",
+)
+
+LEADING_PROMO_EMOJI_PATTERN = re.compile(
+    r"^[\s📢📣🔔➡️👉👆👇✅❗❕]+$"
+)
 
 
 def load_lines(path: Path) -> list[str]:
@@ -186,10 +247,169 @@ def get_bot_token() -> str:
     return ""
 
 
+def is_promotional_line(line: str) -> bool:
+    """Определяет, является ли строка рекламной вставкой."""
+    normalized = re.sub(
+        r"\s+",
+        " ",
+        line,
+    ).strip().lower()
+
+    if not normalized:
+        return False
+
+    for phrase in PROMO_PHRASES:
+        if phrase in normalized:
+            return True
+
+    for pattern in PROMO_LINE_PATTERNS:
+        if re.fullmatch(
+            pattern,
+            normalized,
+            flags=re.IGNORECASE,
+        ):
+            return True
+
+    if (
+        "max" in normalized
+        and (
+            "переход" in normalized
+            or "фото" in normalized
+            or "видео" in normalized
+        )
+    ):
+        return True
+
+    if (
+        TELEGRAM_LINK_PATTERN.search(normalized)
+        and (
+            "подпис" in normalized
+            or "канал" in normalized
+            or "чат" in normalized
+            or "бот" in normalized
+        )
+    ):
+        return True
+
+    return False
+
+
+def clean_post_text(raw_text: str) -> str:
+    """Удаляет рекламу, ссылки и лишнее оформление из текста."""
+    text = html.unescape(
+        raw_text or ""
+    )
+
+    text = text.replace(
+        "\u00a0",
+        " ",
+    )
+
+    text = text.replace(
+        "\u200b",
+        "",
+    )
+
+    text = MARKDOWN_LINK_PATTERN.sub(
+        r"\1",
+        text,
+    )
+
+    cleaned_lines: list[str] = []
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            if (
+                cleaned_lines
+                and cleaned_lines[-1] != ""
+            ):
+                cleaned_lines.append("")
+            continue
+
+        if is_promotional_line(line):
+            continue
+
+        line = TELEGRAM_LINK_PATTERN.sub(
+            "",
+            line,
+        )
+
+        line = GENERAL_URL_PATTERN.sub(
+            "",
+            line,
+        )
+
+        line = re.sub(
+            r"\s+",
+            " ",
+            line,
+        ).strip()
+
+        line = re.sub(
+            r"^[|•·—–\-]+\s*",
+            "",
+            line,
+        ).strip()
+
+        line = re.sub(
+            r"\s*[|•·—–\-]+$",
+            "",
+            line,
+        ).strip()
+
+        if not line:
+            continue
+
+        if LEADING_PROMO_EMOJI_PATTERN.fullmatch(line):
+            continue
+
+        if is_promotional_line(line):
+            continue
+
+        cleaned_lines.append(line)
+
+    while (
+        cleaned_lines
+        and cleaned_lines[0] == ""
+    ):
+        cleaned_lines.pop(0)
+
+    while (
+        cleaned_lines
+        and cleaned_lines[-1] == ""
+    ):
+        cleaned_lines.pop()
+
+    cleaned_text = "\n".join(
+        cleaned_lines
+    )
+
+    cleaned_text = REPEATED_EMPTY_LINES_PATTERN.sub(
+        "\n\n",
+        cleaned_text,
+    )
+
+    cleaned_text = re.sub(
+        r"[ \t]+\n",
+        "\n",
+        cleaned_text,
+    )
+
+    cleaned_text = re.sub(
+        r"\n[ \t]+",
+        "\n",
+        cleaned_text,
+    )
+
+    return cleaned_text.strip()
+
+
 def format_post(post: TelegramPost) -> str:
-    """Формирует публикацию для тематического канала."""
+    """Формирует очищенную публикацию для тематического канала."""
     source_name = f"@{post.channel}"
-    text = post.text.strip()
+    text = clean_post_text(post.text)
 
     if len(text) > MAX_MESSAGE_LENGTH:
         text = (
@@ -211,6 +431,15 @@ def publish_post(
     post: TelegramPost,
 ) -> bool:
     """Публикует одно сообщение через Telegram Bot API."""
+    cleaned_text = clean_post_text(post.text)
+
+    if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
+        print(
+            "Сообщение пропущено после очистки: "
+            f"{post.source_url}"
+        )
+        return False
+
     api_url = (
         "https://api.telegram.org/"
         f"bot{token}/sendMessage"
@@ -259,8 +488,19 @@ def select_new_posts(
 
         current_run_ids.add(post.message_id)
 
-        if military_filter.check(post):
-            selected.append(post)
+        if not military_filter.check(post):
+            continue
+
+        cleaned_text = clean_post_text(post.text)
+
+        if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
+            print(
+                "Сообщение отклонено после очистки: "
+                f"{post.source_url}"
+            )
+            continue
+
+        selected.append(post)
 
     return selected
 
@@ -336,7 +576,7 @@ def main() -> None:
     )
 
     print(
-        "Новых публикаций после фильтра: "
+        "Новых публикаций после фильтра и очистки: "
         f"{len(selected_posts)}"
     )
 
