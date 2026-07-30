@@ -1,6 +1,7 @@
+
 {
   "target_channel": "@nr_military",
   "posts_per_channel": 10,
-  "max_posts_from_channel": 2,
-  "max_posts_per_run": 60
+  "max_posts_from_channel": 1,
+  "max_posts_per_run": 6
 }
