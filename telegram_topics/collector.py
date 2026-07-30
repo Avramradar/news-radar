@@ -824,7 +824,12 @@ def publish_post(
     target_channel: str,
     post: TelegramPost,
 ) -> bool:
-    """Публикует сообщение через Telegram Bot API."""
+    """
+    Публикует пост с фотографией, если она доступна.
+
+    Если Telegram не смог получить изображение,
+    публикация автоматически отправляется обычным текстом.
+    """
     cleaned_text = clean_post_text(post.text)
 
     if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
@@ -834,32 +839,107 @@ def publish_post(
         )
         return False
 
-    api_url = (
+    source_name = f"@{post.channel}"
+
+    source_html = (
+        f"Источник: "
+        f'<a href="{html.escape(post.source_url)}">'
+        f"{html.escape(source_name)}</a>"
+    )
+
+    # Сначала пробуем отправить пост с фотографией.
+    if post.image_url:
+        caption_space = (
+            MAX_PHOTO_CAPTION_LENGTH
+            - len(source_html)
+            - 3
+        )
+
+        caption_text = cleaned_text
+
+        if len(caption_text) > caption_space:
+            caption_text = (
+                caption_text[:caption_space].rstrip()
+                + "…"
+            )
+
+        caption = (
+            f"{html.escape(caption_text)}\n\n"
+            f"{source_html}"
+        )
+
+        photo_api_url = (
+            "https://api.telegram.org/"
+            f"bot{token}/sendPhoto"
+        )
+
+        try:
+            photo_response = requests.post(
+                photo_api_url,
+                timeout=TELEGRAM_TIMEOUT,
+                data={
+                    "chat_id": target_channel,
+                    "photo": post.image_url,
+                    "caption": caption,
+                    "parse_mode": "HTML",
+                },
+            )
+
+            if photo_response.ok:
+                print(
+                    "Опубликовано с фотографией: "
+                    f"{post.source_url}"
+                )
+                return True
+
+            print(
+                "Не удалось отправить фотографию, "
+                "пробуем отправить текст: "
+                f"HTTP {photo_response.status_code}; "
+                f"{photo_response.text}"
+            )
+
+        except requests.RequestException as error:
+            print(
+                "Ошибка отправки фотографии, "
+                f"пробуем отправить текст: {error}"
+            )
+
+    # Если изображения нет или sendPhoto завершился ошибкой,
+    # отправляем обычное текстовое сообщение.
+    message_api_url = (
         "https://api.telegram.org/"
         f"bot{token}/sendMessage"
     )
 
-    response = requests.post(
-        api_url,
-        timeout=TELEGRAM_TIMEOUT,
-        data={
-            "chat_id": target_channel,
-            "text": format_post(post),
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True,
-        },
-    )
-
-    if response.ok:
+    try:
+        message_response = requests.post(
+            message_api_url,
+            timeout=TELEGRAM_TIMEOUT,
+            data={
+                "chat_id": target_channel,
+                "text": format_post(post),
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
+        )
+    except requests.RequestException as error:
         print(
-            f"Опубликовано: {post.source_url}"
+            "Ошибка текстовой публикации: "
+            f"{error}"
+        )
+        return False
+
+    if message_response.ok:
+        print(
+            f"Опубликовано текстом: {post.source_url}"
         )
         return True
 
     print(
         "Ошибка публикации: "
-        f"HTTP {response.status_code}; "
-        f"{response.text}"
+        f"HTTP {message_response.status_code}; "
+        f"{message_response.text}"
     )
 
     return False
