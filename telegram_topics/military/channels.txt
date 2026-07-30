@@ -1,3 +1,45 @@
-# Telegram-каналы для блока боевых сводок
-# Один username на строку, без https://t.me/
-novosti_efir
+# ============================
+# ОФИЦИАЛЬНЫЕ ИСТОЧНИКИ
+# ============================
+
+mchs_official
+mod_russia
+favt_info
+
+# ============================
+# КРУПНЫЕ ОПЕРАТИВНЫЕ СМИ
+# ============================
+
+rian_ru
+tass_agency
+rt_russian
+readovkanews
+mash
+shot_shot
+bazabazon
+ENews112
+
+# ============================
+# ВОЕННАЯ ОПЕРАТИВНАЯ ИНФОРМАЦИЯ
+# ============================
+
+milinfolive
+opersvodki
+Warhronika
+rybar
+RVvoenkor
+boris_rozhin
+Sladkov_plus
+epoddubny
+sashakots
+
+# ============================
+# ОФИЦИАЛЬНЫЕ КАНАЛЫ РЕГИОНОВ
+# ============================
+
+vvgladkov
+avbogomaz
+razvozhaev
+opershtab23
+SALDO_VGA
+BalitskyEV
