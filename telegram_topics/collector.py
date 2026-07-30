@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 from pathlib import Path
 
@@ -16,9 +17,8 @@ BASE_DIR = Path(__file__).resolve().parent
 TOPIC_DIR = BASE_DIR / "military"
 
 CHANNELS_FILE = TOPIC_DIR / "channels.txt"
-TARGET_CHANNEL = "@nr_military"
+CONFIG_FILE = TOPIC_DIR / "config.json"
 
-POSTS_PER_CHANNEL = 10
 TELEGRAM_TIMEOUT = 20
 MAX_MESSAGE_LENGTH = 3900
 
@@ -44,13 +44,43 @@ def load_lines(path: Path) -> list[str]:
     return list(dict.fromkeys(result))
 
 
-def get_bot_token() -> str:
-    """
-    Получает токен Telegram-бота из переменных окружения.
+def load_config(path: Path) -> dict:
+    """Загружает настройки тематического канала."""
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Файл конфигурации не найден: {path}"
+        )
 
-    Поддерживаются несколько названий, чтобы не менять
-    уже существующую конфигурацию проекта.
-    """
+    config = json.loads(
+        path.read_text(encoding="utf-8")
+    )
+
+    target_channel = str(
+        config.get("target_channel", "")
+    ).strip()
+
+    posts_per_channel = int(
+        config.get("posts_per_channel", 10)
+    )
+
+    if not target_channel:
+        raise ValueError(
+            "В config.json не указан target_channel."
+        )
+
+    if posts_per_channel < 1:
+        raise ValueError(
+            "posts_per_channel должен быть больше нуля."
+        )
+
+    return {
+        "target_channel": target_channel,
+        "posts_per_channel": posts_per_channel,
+    }
+
+
+def get_bot_token() -> str:
+    """Получает токен Telegram-бота из переменных окружения."""
     possible_names = (
         "TELEGRAM_BOT_TOKEN",
         "NEWS_BOT_TOKEN",
@@ -73,7 +103,6 @@ def get_bot_token() -> str:
 def format_post(post: TelegramPost) -> str:
     """Формирует сообщение для тематического канала."""
     source_name = f"@{post.channel}"
-
     text = post.text.strip()
 
     if len(text) > MAX_MESSAGE_LENGTH:
@@ -89,6 +118,7 @@ def format_post(post: TelegramPost) -> str:
 
 def publish_post(
     token: str,
+    target_channel: str,
     post: TelegramPost,
 ) -> bool:
     """Публикует одно сообщение в целевой Telegram-канал."""
@@ -101,7 +131,7 @@ def publish_post(
         api_url,
         timeout=TELEGRAM_TIMEOUT,
         data={
-            "chat_id": TARGET_CHANNEL,
+            "chat_id": target_channel,
             "text": format_post(post),
             "parse_mode": "HTML",
             "disable_web_page_preview": False,
@@ -127,28 +157,39 @@ def main() -> None:
     """Запускает полный тематический конвейер."""
     print("Запуск Telegram Military Collector.")
 
+    try:
+        config = load_config(CONFIG_FILE)
+    except Exception as error:
+        print(f"Ошибка конфигурации: {error}")
+        return
+
     channels = load_lines(CHANNELS_FILE)
 
     if not channels:
         print("В channels.txt нет Telegram-каналов.")
         return
 
-    print(
-        f"Каналов для проверки: {len(channels)}"
-    )
-
     token = get_bot_token()
 
     if not token:
         print(
             "Токен Telegram-бота не найден. "
-            "Добавьте TELEGRAM_BOT_TOKEN, "
-            "NEWS_BOT_TOKEN или BOT_TOKEN."
+            "Добавьте BOT_TOKEN в GitHub Secrets."
         )
         return
 
+    target_channel = config["target_channel"]
+    posts_per_channel = config["posts_per_channel"]
+
+    print(f"Целевой канал: {target_channel}")
+    print(f"Каналов для проверки: {len(channels)}")
+    print(
+        "Сообщений на один источник: "
+        f"{posts_per_channel}"
+    )
+
     parser = TelegramPublicParser(
-        posts_per_channel=POSTS_PER_CHANNEL,
+        posts_per_channel=posts_per_channel,
     )
 
     military_filter = MilitaryFilter(
@@ -186,7 +227,11 @@ def main() -> None:
 
     for post in filtered_posts:
         try:
-            if publish_post(token, post):
+            if publish_post(
+                token=token,
+                target_channel=target_channel,
+                post=post,
+            ):
                 published_count += 1
         except Exception as error:
             print(
