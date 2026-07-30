@@ -250,6 +250,10 @@ def load_config(path: Path) -> dict[str, Any]:
         raw_config.get("target_channel", "")
     ).strip()
 
+    news_radar_channel = str(
+        raw_config.get("news_radar_channel", "")
+    ).strip()
+
     posts_per_channel = int(
         raw_config.get("posts_per_channel", 10)
     )
@@ -290,6 +294,7 @@ def load_config(path: Path) -> dict[str, Any]:
 
     return {
         "target_channel": target_channel,
+        "news_radar_channel": news_radar_channel,
         "posts_per_channel": posts_per_channel,
         "max_posts_per_run": max_posts_per_run,
         "max_posts_from_channel": max_posts_from_channel,
@@ -345,11 +350,7 @@ def load_state(path: Path) -> tuple[set[str], set[int]]:
     return published_keys, legacy_message_ids
 
 
-def save_state(
-    path: Path,
-    published_keys: set[str],
-    legacy_message_ids: set[int],
-) -> None:
+def save_state( path: Path, published_keys: set[str], legacy_message_ids: set[int], ) -> None:
     """Сохраняет состояние атомарно."""
     limited_keys = sorted(
         published_keys
@@ -819,17 +820,8 @@ def format_post(post: TelegramPost) -> str:
     )
 
 
-def publish_post(
-    token: str,
-    target_channel: str,
-    post: TelegramPost,
-) -> bool:
-    """
-    Публикует пост с фотографией, если она доступна.
-
-    Если Telegram не смог получить изображение,
-    публикация автоматически отправляется обычным текстом.
-    """
+def publish_post( token: str, target_channel: str, post: TelegramPost, ) -> bool:
+    """ Публикует пост с фотографией, если она доступна. Если Telegram не смог получить изображение, публикация автоматически отправляется обычным текстом. """
     cleaned_text = clean_post_text(post.text)
 
     if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
@@ -945,12 +937,7 @@ def publish_post(
     return False
 
 
-def select_new_posts(
-    posts: list[TelegramPost],
-    military_filter: MilitaryFilter,
-    published_keys: set[str],
-    legacy_message_ids: set[int],
-) -> list[TelegramPost]:
+def select_new_posts( posts: list[TelegramPost], military_filter: MilitaryFilter, published_keys: set[str], legacy_message_ids: set[int], ) -> list[TelegramPost]:
     """Оставляет новые сообщения, прошедшие фильтр и очистку."""
     selected: list[TelegramPost] = []
     current_run_keys: set[str] = set()
@@ -991,12 +978,7 @@ def select_new_posts(
     return selected
 
 
-def distribute_posts_round_robin(
-    posts: list[TelegramPost],
-    channels: list[str],
-    max_posts_from_channel: int,
-    max_posts_per_run: int,
-) -> list[TelegramPost]:
+def distribute_posts_round_robin( posts: list[TelegramPost], channels: list[str], max_posts_from_channel: int, max_posts_per_run: int, ) -> list[TelegramPost]:
     """Распределяет публикации равномерно между источниками."""
     grouped_posts: dict[
         str,
@@ -1081,6 +1063,10 @@ def main() -> None:
         config["target_channel"]
     )
 
+    news_radar_channel = str(
+        config["news_radar_channel"]
+    )
+
     posts_per_channel = int(
         config["posts_per_channel"]
     )
@@ -1098,6 +1084,10 @@ def main() -> None:
     )
 
     print(f"Целевой канал: {target_channel}")
+    print(
+        "Дополнительный канал News Radar: "
+        f"{news_radar_channel}"
+    )
     print(f"Источников: {len(channels)}")
 
     print(
@@ -1181,6 +1171,33 @@ def main() -> None:
         if not success:
             continue
 
+        try:
+            news_radar_success = publish_post(
+                token=token,
+                target_channel=news_radar_channel,
+                post=post,
+            )
+        except Exception as error:
+            print(
+                "Ошибка отправки в News Radar "
+                f"{post.source_url}: {error}"
+            )
+            news_radar_success = False
+
+        if not news_radar_success:
+            print(
+                "Публикация отправлена в военный канал, "
+                "но не отправлена в News Radar. "
+                "Она не будет записана в state.json и "
+                "будет повторена при следующем запуске."
+            )
+            continue
+
+        print(
+            "Публикация отправлена в оба канала: "
+            f"{post.source_url}"
+        )
+
         post_key = make_post_key(post)
         published_keys.add(post_key)
 
@@ -1211,7 +1228,7 @@ def main() -> None:
             published_by_channel.items()
         ):
             print(
-                f"  @{channel_name}: {count}"
+                f" @{channel_name}: {count}"
             )
 
     print(
