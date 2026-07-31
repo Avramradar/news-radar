@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import html
 import re
+from urllib.parse import urljoin
 from dataclasses import dataclass
 
 import requests
@@ -43,15 +45,7 @@ class TelegramPublicParser:
         self.posts_per_channel = posts_per_channel
 
     def fetch_channel(self, channel: str) -> list[TelegramPost]:
-        """
-        Получает последние публикации одного публичного канала.
-
-        channel можно передавать в любом из форматов:
-        channel_name
-        @channel_name
-        https://t.me/channel_name
-        https://t.me/s/channel_name
-        """
+        """ Получает последние публикации одного публичного канала. channel можно передавать в любом из форматов: channel_name @channel_name https://t.me/channel_name https://t.me/s/channel_name """
         normalized_channel = self.normalize_channel(channel)
 
         if not normalized_channel:
@@ -91,10 +85,7 @@ class TelegramPublicParser:
 
         return posts
 
-    def fetch_channels(
-        self,
-        channels: list[str],
-    ) -> list[TelegramPost]:
+    def fetch_channels( self, channels: list[str], ) -> list[TelegramPost]:
         """Получает публикации из нескольких каналов."""
         posts: list[TelegramPost] = []
 
@@ -119,11 +110,7 @@ class TelegramPublicParser:
 
         return posts
 
-    def _parse_message(
-        self,
-        node: Tag,
-        channel: str,
-    ) -> TelegramPost | None:
+    def _parse_message( self, node: Tag, channel: str, ) -> TelegramPost | None:
         message = node.select_one(
             ".tgme_widget_message"
         )
@@ -160,7 +147,7 @@ class TelegramPublicParser:
             image_url=self._extract_image(node),
         )
 
-    @staticmethod
+@staticmethod
     def normalize_channel(channel: str) -> str:
         """Приводит ссылку или username канала к чистому username."""
         normalized = channel.strip()
@@ -192,35 +179,63 @@ class TelegramPublicParser:
 
         return normalized.strip()
 
-    @staticmethod
+@staticmethod
     def _extract_image(node: Tag) -> str:
+        """Извлекает прямую ссылку на фотографию публикации."""
         photo = node.select_one(
             ".tgme_widget_message_photo_wrap"
         )
 
         if photo is not None:
-            style = str(
-                photo.get("style", "")
+            style = html.unescape(
+                str(photo.get("style", ""))
             )
 
             match = re.search(
-                r"background-image:url\(['\"]?([^'\")]+)",
+                r"background-image\s*:\s*url\(\s*"
+                r"(?:['\"])?(.+?)(?:['\"])?\s*\)",
                 style,
+                flags=re.IGNORECASE,
             )
 
             if match:
-                return match.group(1)
+                image_url = match.group(1).strip(
+                    " \t\r\n'\""
+                )
+                image_url = html.unescape(image_url)
+                image_url = image_url.replace("\\/", "/")
 
-        image = node.select_one("img")
+                if image_url.startswith("//"):
+                    image_url = "https:" + image_url
+
+                return urljoin(
+                    "https://t.me/",
+                    image_url,
+                )
+
+        # Не используем произвольный img: первым изображением часто
+        # оказывается аватар канала, а не фотография сообщения.
+        image = node.select_one(
+            ".tgme_widget_message_document_thumb img, "
+            ".tgme_widget_message_video_thumb img"
+        )
 
         if image is not None:
-            return str(
-                image.get("src", "")
-            ).strip()
+            image_url = html.unescape(
+                str(image.get("src", "")).strip()
+            )
+
+            if image_url.startswith("//"):
+                image_url = "https:" + image_url
+
+            return urljoin(
+                "https://t.me/",
+                image_url,
+            )
 
         return ""
 
-    @staticmethod
+@staticmethod
     def _make_message_id(source_url: str) -> int:
         digest = hashlib.sha256(
             source_url.encode("utf-8")
