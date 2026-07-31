@@ -33,8 +33,6 @@ DEFAULT_MAX_POSTS_FROM_CHANNEL = 2
 
 MIN_CLEAN_TEXT_LENGTH = 25
 
-MILITARY_COLLECTOR_VERSION = "2026-07-31-photo-multipart-v1"
-
 
 # Фразы, после которых весь оставшийся текст считается
 # рекламным или служебным хвостом.
@@ -1149,7 +1147,6 @@ def distribute_posts_round_robin( posts: list[TelegramPost], channels: list[str]
 def main() -> None:
     """Запускает тематический Telegram-конвейер."""
     print("Запуск Telegram Military Collector.")
-    print(f"Версия collector: {MILITARY_COLLECTOR_VERSION}")
 
     try:
         config = load_config(CONFIG_FILE)
