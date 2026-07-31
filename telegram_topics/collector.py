@@ -33,6 +33,8 @@ DEFAULT_MAX_POSTS_FROM_CHANNEL = 2
 
 MIN_CLEAN_TEXT_LENGTH = 25
 
+MILITARY_COLLECTOR_VERSION = "2026-07-31-photo-multipart-v1"
+
 
 # Фразы, после которых весь оставшийся текст считается
 # рекламным или служебным хвостом.
@@ -820,8 +822,107 @@ def format_post(post: TelegramPost) -> str:
     )
 
 
+def _detect_image_type(image_data: bytes) -> tuple[str, str]:
+    """Определяет MIME-тип и расширение изображения по сигнатуре файла."""
+    if image_data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg", "jpg"
+
+    if image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png", "png"
+
+    if image_data.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif", "gif"
+
+    if (
+        len(image_data) >= 12
+        and image_data[:4] == b"RIFF"
+        and image_data[8:12] == b"WEBP"
+    ):
+        return "image/webp", "webp"
+
+    return "", ""
+
+
+def download_post_image( image_url: str, source_url: str, ) -> tuple[bytes, str, str] | None:
+    """Скачивает изображение самостоятельно перед отправкой в Telegram."""
+    normalized_url = html.unescape(
+        str(image_url or "").strip()
+    ).replace("\\/", "/")
+
+    if normalized_url.startswith("//"):
+        normalized_url = "https:" + normalized_url
+
+    if not normalized_url.startswith(("http://", "https://")):
+        print(
+            "Некорректная ссылка на фотографию: "
+            f"{normalized_url[:200]}"
+        )
+        return None
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Linux; Android 13) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0 Safari/537.36"
+        ),
+        "Accept": "image/avif,image/webp,image/apng,image/svg+xml,"
+        "image/*,*/*;q=0.8",
+        "Accept-Language": "ru,en;q=0.8",
+        "Referer": source_url,
+    }
+
+    try:
+        response = requests.get(
+            normalized_url,
+            timeout=TELEGRAM_TIMEOUT,
+            headers=headers,
+            allow_redirects=True,
+        )
+        response.raise_for_status()
+    except requests.RequestException as error:
+        print(
+            "Не удалось скачать фотографию: "
+            f"{error}; URL: {normalized_url[:200]}"
+        )
+        return None
+
+    image_data = response.content
+
+    if not image_data:
+        print(
+            "Сервер вернул пустую фотографию: "
+            f"{normalized_url[:200]}"
+        )
+        return None
+
+    detected_mime, extension = _detect_image_type(image_data)
+    response_mime = response.headers.get(
+        "Content-Type",
+        "",
+    ).split(";", 1)[0].strip().lower()
+
+    if not detected_mime:
+        print(
+            "Загруженный файл не похож на изображение: "
+            f"Content-Type={response_mime or 'не указан'}; "
+            f"URL: {normalized_url[:200]}"
+        )
+        return None
+
+    filename = f"telegram_photo.{extension}"
+
+    print(
+        "Фотография скачана: "
+        f"{len(image_data)} байт; "
+        f"{detected_mime}; "
+        f"{source_url}"
+    )
+
+    return image_data, detected_mime, filename
+
+
 def publish_post( token: str, target_channel: str, post: TelegramPost, ) -> bool:
-    """ Публикует пост с фотографией, если она доступна. Если Telegram не смог получить изображение, публикация автоматически отправляется обычным текстом. """
+    """Публикует пост с загруженной фотографией или резервным текстом."""
     cleaned_text = clean_post_text(post.text)
 
     if len(cleaned_text) < MIN_CLEAN_TEXT_LENGTH:
@@ -839,7 +940,6 @@ def publish_post( token: str, target_channel: str, post: TelegramPost, ) -> bool
         f"{html.escape(source_name)}</a>"
     )
 
-    # Сначала пробуем отправить пост с фотографией.
     if post.image_url:
         caption_space = (
             MAX_PHOTO_CAPTION_LENGTH
@@ -860,45 +960,58 @@ def publish_post( token: str, target_channel: str, post: TelegramPost, ) -> bool
             f"{source_html}"
         )
 
-        photo_api_url = (
-            "https://api.telegram.org/"
-            f"bot{token}/sendPhoto"
+        downloaded_image = download_post_image(
+            image_url=post.image_url,
+            source_url=post.source_url,
         )
 
-        try:
-            photo_response = requests.post(
-                photo_api_url,
-                timeout=TELEGRAM_TIMEOUT,
-                data={
-                    "chat_id": target_channel,
-                    "photo": post.image_url,
-                    "caption": caption,
-                    "parse_mode": "HTML",
-                },
+        if downloaded_image is not None:
+            image_data, image_mime, filename = downloaded_image
+
+            photo_api_url = (
+                "https://api.telegram.org/"
+                f"bot{token}/sendPhoto"
             )
 
-            if photo_response.ok:
-                print(
-                    "Опубликовано с фотографией: "
-                    f"{post.source_url}"
+            try:
+                photo_response = requests.post(
+                    photo_api_url,
+                    timeout=TELEGRAM_TIMEOUT,
+                    data={
+                        "chat_id": target_channel,
+                        "caption": caption,
+                        "parse_mode": "HTML",
+                    },
+                    files={
+                        "photo": (
+                            filename,
+                            image_data,
+                            image_mime,
+                        ),
+                    },
                 )
-                return True
 
-            print(
-                "Не удалось отправить фотографию, "
-                "пробуем отправить текст: "
-                f"HTTP {photo_response.status_code}; "
-                f"{photo_response.text}"
-            )
+                if photo_response.ok:
+                    print(
+                        "Опубликовано с фотографией: "
+                        f"{post.source_url} -> "
+                        f"{target_channel}"
+                    )
+                    return True
 
-        except requests.RequestException as error:
-            print(
-                "Ошибка отправки фотографии, "
-                f"пробуем отправить текст: {error}"
-            )
+                print(
+                    "Telegram отклонил загруженную фотографию, "
+                    "пробуем отправить текст: "
+                    f"HTTP {photo_response.status_code}; "
+                    f"{photo_response.text}"
+                )
 
-    # Если изображения нет или sendPhoto завершился ошибкой,
-    # отправляем обычное текстовое сообщение.
+            except requests.RequestException as error:
+                print(
+                    "Ошибка загрузки фотографии в Telegram, "
+                    f"пробуем отправить текст: {error}"
+                )
+
     message_api_url = (
         "https://api.telegram.org/"
         f"bot{token}/sendMessage"
@@ -935,7 +1048,6 @@ def publish_post( token: str, target_channel: str, post: TelegramPost, ) -> bool
     )
 
     return False
-
 
 def select_new_posts( posts: list[TelegramPost], military_filter: MilitaryFilter, published_keys: set[str], legacy_message_ids: set[int], ) -> list[TelegramPost]:
     """Оставляет новые сообщения, прошедшие фильтр и очистку."""
@@ -1037,6 +1149,7 @@ def distribute_posts_round_robin( posts: list[TelegramPost], channels: list[str]
 def main() -> None:
     """Запускает тематический Telegram-конвейер."""
     print("Запуск Telegram Military Collector.")
+    print(f"Версия collector: {MILITARY_COLLECTOR_VERSION}")
 
     try:
         config = load_config(CONFIG_FILE)
