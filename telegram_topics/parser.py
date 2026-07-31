@@ -152,7 +152,7 @@ class TelegramPublicParser:
             image_url=self._extract_image(node),
         )
 
-@staticmethod
+    @staticmethod
     def normalize_channel(channel: str) -> str:
         """Приводит ссылку или username канала к чистому username."""
         normalized = channel.strip()
@@ -184,7 +184,7 @@ class TelegramPublicParser:
 
         return normalized.strip()
 
-@staticmethod
+    @staticmethod
     def _extract_image(node: Tag) -> str:
         """Извлекает прямую ссылку на фотографию публикации."""
         photo = node.select_one(
@@ -239,7 +239,7 @@ class TelegramPublicParser:
 
         return ""
 
-@staticmethod
+    @staticmethod
     def _make_message_id(source_url: str) -> int:
         """Создаёт стабильный числовой идентификатор сообщения."""
         digest = hashlib.sha256(
