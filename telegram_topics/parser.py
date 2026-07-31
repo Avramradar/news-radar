@@ -5,8 +5,8 @@ from __future__ import annotations
 import hashlib
 import html
 import re
-from urllib.parse import urljoin
 from dataclasses import dataclass
+from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
@@ -33,6 +33,7 @@ class TelegramPublicParser:
         "Mozilla/5.0 "
         "(Linux; Android 13) "
         "AppleWebKit/537.36 "
+        "(KHTML, like Gecko) "
         "Chrome/120.0 Safari/537.36"
     )
 
@@ -45,11 +46,13 @@ class TelegramPublicParser:
         self.posts_per_channel = posts_per_channel
 
     def fetch_channel(self, channel: str) -> list[TelegramPost]:
-        """ Получает последние публикации одного публичного канала. channel можно передавать в любом из форматов: channel_name @channel_name https://t.me/channel_name https://t.me/s/channel_name """
+        """ Получает последние публикации одного публичного канала. Канал можно передавать в форматах: channel_name @channel_name https://t.me/channel_name https://t.me/s/channel_name """
         normalized_channel = self.normalize_channel(channel)
 
         if not normalized_channel:
-            raise ValueError("Не указан username Telegram-канала.")
+            raise ValueError(
+                "Не указан username Telegram-канала."
+            )
 
         url = f"https://t.me/s/{normalized_channel}"
 
@@ -58,6 +61,7 @@ class TelegramPublicParser:
             timeout=self.TIMEOUT,
             headers={
                 "User-Agent": self.USER_AGENT,
+                "Accept-Language": "ru,en;q=0.8",
             },
         )
 
@@ -111,6 +115,7 @@ class TelegramPublicParser:
         return posts
 
     def _parse_message( self, node: Tag, channel: str, ) -> TelegramPost | None:
+        """Разбирает один блок Telegram-сообщения."""
         message = node.select_one(
             ".tgme_widget_message"
         )
@@ -202,6 +207,7 @@ class TelegramPublicParser:
                 image_url = match.group(1).strip(
                     " \t\r\n'\""
                 )
+
                 image_url = html.unescape(image_url)
                 image_url = image_url.replace("\\/", "/")
 
@@ -213,8 +219,6 @@ class TelegramPublicParser:
                     image_url,
                 )
 
-        # Не используем произвольный img: первым изображением часто
-        # оказывается аватар канала, а не фотография сообщения.
         image = node.select_one(
             ".tgme_widget_message_document_thumb img, "
             ".tgme_widget_message_video_thumb img"
@@ -237,6 +241,7 @@ class TelegramPublicParser:
 
 @staticmethod
     def _make_message_id(source_url: str) -> int:
+        """Создаёт стабильный числовой идентификатор сообщения."""
         digest = hashlib.sha256(
             source_url.encode("utf-8")
         ).hexdigest()
