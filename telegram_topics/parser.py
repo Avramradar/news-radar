@@ -152,7 +152,7 @@ class TelegramPublicParser:
             image_url=self._extract_image(node),
         )
 
-@staticmethod
+    @staticmethod
     def normalize_channel(channel: str) -> str:
         """Приводит ссылку или username канала к чистому username."""
         normalized = channel.strip()
