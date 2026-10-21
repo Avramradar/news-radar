@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-20",
+  "reviewed": true,
+  "reviewed_at": "2026-10-21T06:00:00+03:00",
+  "source_notes": [
+    "DEMO ONLY - replace with human-reviewed public summary"
+  ],
+  "commentary": "Демонстрационные данные. Не отражают действительную обстановку.",
+  "sectors": [
+    {
+      "name": "Северный сектор",
+      "activity": "неизвестно"
+    },
+    {
+      "name": "Центральный сектор",
+      "activity": "неизвестно"
+    },
+    {
+      "name": "Южный сектор",
+      "activity": "неизвестно"
+    }
+  ]
+}
