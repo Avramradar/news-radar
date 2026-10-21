@@ -1,0 +1,23 @@
+name: NEWS RADAR - Daily Overview
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 7 * * *'  # 07:15 UTC, adjust as needed
+permissions:
+  contents: read
+jobs:
+  overview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate overview without publishing
+        env:
+          MAP_PUBLISH: '0'
+        run: python map_daily.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: news-radar-overview
+          path: data/map_latest.svg
